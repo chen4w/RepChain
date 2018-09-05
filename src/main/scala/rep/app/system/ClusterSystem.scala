@@ -27,11 +27,14 @@ import rep.network.cluster.MemberListener
 import rep.network.module.ModuleManager
 import rep.network.tools.Statistic.StatisticCollection
 import rep.network.tools.register.ActorRegister
-import rep.ui.web.EventServer
+import rep.ui.web.{EventServer, UdpServer}
 import rep.utils.GlobalUtils.ActorType
 import rep.utils.RepLogging
-import rep.storage.cfg._ 
+import rep.storage.cfg._
 import java.io.File
+
+import rep.app.Repchain
+
 import scala.collection.mutable
 import rep.app.conf.SystemProfile
 
@@ -78,6 +81,8 @@ class ClusterSystem(sysTag: String, initType: Int, sysStart:Boolean) extends Rep
   private val moduleName = modulePrefix + "_" + sysTag
 
   private var webSocket: ActorRef = null
+
+  private var udpServer: ActorRef = null
 
   private var memberLis: ActorRef = null
 
@@ -213,6 +218,7 @@ class ClusterSystem(sysTag: String, initType: Int, sysStart:Boolean) extends Rep
           throw new Exception("not enough disk space")
         }
         if (enableWebSocket) webSocket = sysActor.actorOf(Props[ EventServer ], "ws")
+        if (Repchain.UDPNum == 1)  udpServer = sysActor.actorOf(Props[ UdpServer ], "udp")
         memberLis = sysActor.actorOf(Props[ MemberListener ], "memberListener")
         ModuleBase.registerActorRef(sysTag, ActorType.MEMBER_LISTENER, memberLis)
         if (enableWebSocket) ModuleBase.registerActorRef(sysTag, ActorType.API_MODULE, webSocket)

@@ -25,6 +25,8 @@ import rep.app.system.ClusterSystem.InitType
   */
 object Repchain {
 
+  var UDPNum = 1
+
   def main(args: Array[String]): Unit = {
 
     //创建系统实例
@@ -56,6 +58,7 @@ object Repchain {
       sys.joinCluster(joinAddress)
       sys.start
       nodes += sys
+      UDPNum += 1
     }
 
     //node数量在最大和最小值之间振荡,仿真node入网和离网
