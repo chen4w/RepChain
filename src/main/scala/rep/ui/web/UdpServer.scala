@@ -6,7 +6,8 @@ import akka.actor.{Actor, ActorRef}
 import akka.io.{IO, Udp, UdpConnected}
 import akka.util.ByteString
 import rep.app.conf.SystemProfile
-import rep.protos.peer.Transaction
+import rep.crypto.{ECDSASign, Sha256}
+import rep.protos.transaction.IotTransaction
 import rep.ui.web.UdpServer.addr
 
 object UdpServer {
@@ -43,8 +44,12 @@ class UdpServer extends Actor {
       //#listener
        print(data.utf8String)
       try {
-        val tran = Transaction.parseFrom(data.toArray)
+        val tran = IotTransaction.parseFrom(data.toArray)
+        val cert = ECDSASign.getCertByNodeAddr(tran.cert.toStringUtf8)
+        val tOutSig = tran.withSignature(com.google.protobuf.ByteString.EMPTY);
+        val flag = ECDSASign.verify(tran.signature.toByteArray, Sha256.hash(tOutSig.toByteArray), cert.get.getPublicKey)
         print(tran)
+        print(flag)
       } catch {
         case e:Exception => print(e.getMessage)
       }

@@ -17,16 +17,20 @@ package rep.crypto
 
 import java.security._
 import java.io._
-import java.security.cert.{ Certificate, CertificateFactory }
+import java.security.cert.{Certificate, CertificateFactory}
+
 import rep.app.conf.SystemProfile
 import com.google.protobuf.ByteString
 import fastparse.utils.Base64
 import rep.utils.SerializeUtils
 import rep.storage._
+
 import scala.collection.mutable
 import com.fasterxml.jackson.core.Base64Variants
 import java.security.cert.X509Certificate
 import javax.xml.bind.DatatypeConverter
+
+import sun.security.ec.ECPublicKeyImpl
 
 /**
  * 系统密钥相关伴生对象
@@ -101,7 +105,7 @@ object ECDSASign extends ECDSASign {
    * @return
    */
   def getBitcoinAddrByCert(cert: Certificate): String = {
-    BitcoinUtils.calculateBitcoinAddress(cert.getPublicKey.getEncoded)
+    BitcoinUtils.calculateBitcoinAddress(cert.getPublicKey.asInstanceOf[ECPublicKeyImpl].getEncodedPublicValue)
   }
 
   /**
@@ -111,7 +115,7 @@ object ECDSASign extends ECDSASign {
    */
   def getBitcoinAddrByCert(certByte: Array[Byte]): String = {
     val cert = SerializeUtils.deserialise(certByte).asInstanceOf[Certificate]
-    BitcoinUtils.calculateBitcoinAddress(cert.getPublicKey.getEncoded)
+    BitcoinUtils.calculateBitcoinAddress(cert.getPublicKey.asInstanceOf[ECPublicKeyImpl].getEncodedPublicValue)
   }
 
   /**
