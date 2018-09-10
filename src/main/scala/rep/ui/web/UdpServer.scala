@@ -7,12 +7,13 @@ import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
 import akka.io.{IO, Udp, UdpConnected}
 import akka.util.{ByteString, Timeout}
+import com.sun.org.apache.xml.internal.security.algorithms.implementations.SignatureECDSA
 import rep.app.conf.SystemProfile
 import rep.crypto.{ECDSASign, Sha256}
 import rep.network.PeerHelper
 import rep.network.base.ModuleHelper
 import rep.protos.peer.Transaction
-import rep.protos.transaction.IotTransaction
+import rep.protos.udpTransaction.IotTransaction
 import rep.sc.Sandbox.DoTransactionResult
 import rep.sc.TransProcessor
 import rep.sc.TransProcessor.PreTransaction
@@ -55,16 +56,17 @@ class UdpServer extends Actor with ModuleHelper{
       val back = data.utf8String + "back"
       try {
         // 构建交易
+        print(data.asByteBuffer.toString)
         val tran = IotTransaction.parseFrom(data.toArray)
         print(tran)
         // 此处可能不一定是信任列表证书，可能是注册好的证书
         val cert = ECDSASign.getCertByNodeAddr(tran.cert.toStringUtf8)
         val tOutSig = tran.withSignature(com.google.protobuf.ByteString.EMPTY);
-        ECDSASign.verify(tran.signature.toByteArray, Sha256.hash(tOutSig.toByteArray), cert.get.getPublicKey) match {
+        ECDSASign.verify(SignatureECDSA.convertXMLDSIGtoASN1(tran.signature.toByteArray), tOutSig.toByteArray, cert.get.getPublicKey) match {
           case true =>
             // TODO execTran(tran, sender)
-            sender ! UdpConnected.Send(ByteString("签名验证成功", StandardCharsets.UTF_8), remote)
-          case false => sender ! UdpConnected.Send(ByteString("签名验证错误", StandardCharsets.UTF_8), remote)
+            sender ! UdpConnected.Send(ByteString("Success", StandardCharsets.UTF_8), remote)
+          case false => sender ! UdpConnected.Send(ByteString("Fail", StandardCharsets.UTF_8), remote)
         }
       } catch {
         case e:Exception =>
