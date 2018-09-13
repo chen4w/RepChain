@@ -42,4 +42,8 @@ object ActorUtils {
   def isAPI(path:String):Boolean = {
     path.contains("api")
   }
+
+  def isUDP(path:String):Boolean = {
+    path.contains("udp")
+  }
 }

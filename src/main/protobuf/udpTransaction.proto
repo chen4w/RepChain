@@ -4,17 +4,9 @@ syntax = "proto2";
 option java_package = "rep.protos";
 //import "google/protobuf/timestamp.proto";
 
-/*
-* 交易
-*/
-message IotTransaction {
-    //store ChaincodeID as bytes so its encrypted value can be stored
-    //string chaincodeID = 1;
-    required string txid = 2;
-    required string function = 3;
-    //repeated string args = 4;
-    //google.protobuf.Timestamp timestamp = 5;
-    //目前将其改为cert对应公钥的短地址，为了减少数据大小
-    required bytes cert = 6;
-    required bytes signature = 7;
+message IotData {
+    // 设备上传的数据
+    required string data = 1;
+    // 签名
+    required bytes signature = 2;
 }

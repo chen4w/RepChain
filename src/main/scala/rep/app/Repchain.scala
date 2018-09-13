@@ -36,7 +36,7 @@ object Repchain {
     sys1.joinCluster(joinAddress)//加入网络
     sys1.enableWS()//开启API接口
     sys1.start//启动系统
-
+    UDPNum += 1
     val cluster = sys1.getActorSys//获取内部系统SystemActor实例
 
     val node_min = 4
