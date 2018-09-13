@@ -83,8 +83,10 @@ class UdpServer extends Actor with ModuleHelper{
 //        val shim = new Shim(context.system, cid)
 //        val id_cid = shim.getVal(iot_data.id + "_cid")   // 获取对应的cid，这个要填在新构造的交易里面
 //        val cert_addr = shim.getVal(iot_data.id + "_addr")  // 获取对应的addr
+//        val cert_key = "CERT_" + cert_addr  // 普通用户证书的key
+//        var cert = ECDSASign.getCertWithCheck(null, certKey, pe.getSysTag)
         // 此处可能不一定是信任列表证书，可能是注册好的证书
-        val cert = ECDSASign.getCertByNodeAddr("1Luv5vq4v1CRkTN98YMhqQV1F18nGv11gX")  // 此处的短地址最后要改为id_addr
+        val cert = ECDSASign.getCertByNodeAddr("1Luv5vq4v1CRkTN98YMhqQV1F18nGv11gX")  // 此处cert改为上面
         val tOutSig = tran.withSignature(com.google.protobuf.ByteString.EMPTY)
         val asn1Signature = SignatureECDSA.convertXMLDSIGtoASN1(tran.signature.toByteArray)
         ECDSASign.verify(asn1Signature, tOutSig.toByteArray, cert.get.getPublicKey) match {
