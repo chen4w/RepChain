@@ -86,7 +86,7 @@ class UdpServer extends Actor with ModuleHelper{
 //        val cert_key = "CERT_" + cert_addr  // 普通用户证书的key
 //        var cert = ECDSASign.getCertWithCheck(null, certKey, pe.getSysTag)
         // 此处可能不一定是信任列表证书，可能是注册好的证书
-        val cert = ECDSASign.getCertByNodeAddr("1Luv5vq4v1CRkTN98YMhqQV1F18nGv11gX")  // 此处cert改为上面
+        val cert = ECDSASign.getCertByNodeAddr("1Luv5vq4v1CRkTN98YMhqQV1F18nGv11gX")  // 此处cert改为上面注释掉的cert
         val tOutSig = tran.withSignature(com.google.protobuf.ByteString.EMPTY)
         val asn1Signature = SignatureECDSA.convertXMLDSIGtoASN1(tran.signature.toByteArray)
         ECDSASign.verify(asn1Signature, tOutSig.toByteArray, cert.get.getPublicKey) match {

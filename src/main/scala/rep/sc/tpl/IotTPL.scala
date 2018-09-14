@@ -70,7 +70,12 @@ class IotTPL extends IContract{
   def putId_Cid(ctx: ContractContext, data:Map[String,String]): Object = {
     for ((id, cid) <- data) {
       ctx.api.check(ctx.t.cert.toStringUtf8,ctx.t)
-      ctx.api.setVal(id, cid) // 目前一个id对应一个cid
+      val k = id + "_cid"
+      val pv = ctx.api.getVal(k)
+      // 不允许覆盖，允许通过交易替换
+      if(pv != null)
+        throw new Exception("[" + k + "]已存在，当前值[" + pv + "]")
+      ctx.api.setVal(k, cid) // 目前一个id对应一个cid
     }
     "put id_cid ok"
   }
@@ -84,7 +89,12 @@ class IotTPL extends IContract{
   def putId_CertAddr(ctx: ContractContext, data:Map[String,String]): Object = {
     for ((id, certAddr) <- data) {
       ctx.api.check(ctx.t.cert.toStringUtf8,ctx.t)
-      ctx.api.setVal(id, certAddr) // 目前一个id对应一个certAddr
+      val k = id + "_addr"
+      val pv = ctx.api.getVal(k)
+      // 不允许覆盖，允许通过交易替换
+      if(pv != null)
+        throw new Exception("[" + k + "]已存在，当前值[" + pv + "]")
+      ctx.api.setVal(k, certAddr) // 目前一个id对应一个certAddr
     }
     "put id_certAddr ok"
   }
