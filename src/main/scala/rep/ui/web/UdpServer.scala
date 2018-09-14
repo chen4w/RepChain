@@ -81,10 +81,11 @@ class UdpServer extends Actor with ModuleHelper{
         val cid = Block.parseFrom(sr.getBlockByHeight(1)).transactions(0).getPayload.getChaincodeID.name  // 从创世块中拿到合约id
         // TODO 后续要改为动态的存入和获取，如下
 //        val shim = new Shim(context.system, cid)
+//        shim.sr = ImpDataPreloadMgr.GetImpDataPreload(pe.getSysTag, "udp")
 //        val id_cid = shim.getVal(iot_data.id + "_cid")   // 获取对应的cid，这个要填在新构造的交易里面
 //        val cert_addr = shim.getVal(iot_data.id + "_addr")  // 获取对应的addr
-//        val cert_key = "CERT_" + cert_addr  // 普通用户证书的key
-//        var cert = ECDSASign.getCertWithCheck(null, certKey, pe.getSysTag)
+//        val cert_key = shim.pre_key + Shim.PRE_CERT + cert_addr  // 普通用户证书的key
+//        var cert = ECDSASign.getCertWithCheck(null, cert_key, pe.getSysTag)
         // 此处可能不一定是信任列表证书，可能是注册好的证书
         val cert = ECDSASign.getCertByNodeAddr("1Luv5vq4v1CRkTN98YMhqQV1F18nGv11gX")  // 此处cert改为上面注释掉的cert
         val tOutSig = tran.withSignature(com.google.protobuf.ByteString.EMPTY)

@@ -63,6 +63,7 @@ class IotTPL extends IContract{
 
   /**
     * 将 id 与cid 键值对存下来
+    * 目前接收的是用map键值对构造的json
     * @param ctx
     * @param data
     * @return
@@ -82,6 +83,7 @@ class IotTPL extends IContract{
 
   /**
     * 将 id 与 addr 键值对存下来，其实也可以用cid 与 addr 键值对
+    * 目前接收的是用map键值对构造的json
     * @param ctx
     * @param data
     * @return

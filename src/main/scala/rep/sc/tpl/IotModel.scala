@@ -36,4 +36,11 @@ object IotModel {
     */
   case class IdCid(id: String, cid: String)
 
+  /**
+    * 管理员put相应设备的id与addr键值对
+    * @param id
+    * @param addr
+    */
+  case class IdCertAddr(id: String, addr:String)
+
 }

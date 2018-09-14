@@ -220,6 +220,8 @@ class RestActor extends Actor with ModuleHelper with RepLogging {
         val future = sandbox ? PreTransaction(txr)
         val result = Await.result(future, timeout.duration).asInstanceOf[DoTransactionResult]
         val rv = result
+        // 这个要释放掉
+        ImpDataPreloadMgr.Free(pe.getDBTag,txr.txid)
         rv.err match {
           case None =>
             //预执行正常,提交并广播交易
