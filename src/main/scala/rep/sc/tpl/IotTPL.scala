@@ -54,7 +54,7 @@ class IotTPL extends IContract{
     if(pv != null)
       throw new Exception("[" + k + "]已存在，当前值[" + pv + "]")
     val data_sign = Map("iotdata" -> data("iotdata"), "signature" -> data("signature"))
-    val v = render(data_sign)
+    val v = write(data_sign)
     print(v)
     ctx.api.setVal(k, v)
     print("put_IotData:" + k + ":" + v)
