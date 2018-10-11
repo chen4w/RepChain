@@ -68,7 +68,8 @@ class UdpServer extends Actor with ModuleHelper{
       // 绑定端口成功会打印"hello world"
       print("hello world")
       // 发送数据到指定云平台，来注册通道
-      sender ! UdpConnected.Send(ByteString("ep=LX1537GRA8EHQ66S&pw=123456"), remote)
+//      sender ! UdpConnected.Send(ByteString("ep=LX1537GRA8EHQ66S&pw=123456"), remote)
+      sender ! UdpConnected.Send(ByteString("ep=M28QFL8HTVDRNA3S&pw=123456"), remote)
 
     case UdpConnected.Received(data) =>
       try {
