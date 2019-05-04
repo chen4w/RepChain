@@ -28,7 +28,8 @@ import rep.network.module.ModuleManager
 import rep.protos.peer.{Certificate, ChaincodeId, Signer}
 import rep.sc.TransProcessor.DoTransaction
 import rep.sc.TransferSpec.{ACTION, SetMap}
-import rep.sc.tpl.{CertInfo, Transfer}
+import rep.sc.tpl.{CertInfo}
+import rep.sc.tpl.ContractAssetsTPL2
 import rep.storage.ImpDataAccess
 import rep.utils.SerializeUtils.toJson
 import rep.app.conf.SystemProfile
@@ -51,7 +52,7 @@ class TransferSpec2(_system: ActorSystem)
   implicit val serialization = jackson.Serialization
   // or native.Serialization
   implicit val formats = DefaultFormats
-
+  val c2 = new ContractAssetsTPL2()
   "Contract deployed as CODE_SCALA " should "executes serially" in {
     val sysName = "121000005l35120456.node1"
     val dbTag = "121000005l35120456.node1"
@@ -67,9 +68,9 @@ class TransferSpec2(_system: ActorSystem)
     val sms = write(sm)
     
     val tcs = Array(
-          Transfer("121000005l35120456", "12110107bi45jh675g", 5),
-          Transfer("121000005l35120456", "12110107bi45jh675g", 3),
-           Transfer("121000005l35120456", "12110107bi45jh675g", 2))
+          c2.Transfer("121000005l35120456", "12110107bi45jh675g", 5),
+          c2.Transfer("121000005l35120456", "12110107bi45jh675g", 3),
+          c2.Transfer("121000005l35120456", "12110107bi45jh675g", 2))
     val rcs = Array(None, None , None)
     
     val signer = Signer("node2", "12110107bi45jh675g", "13856789234", Seq("node2"))

@@ -66,8 +66,16 @@ libraryDependencies ++= Seq(
   "ch.megard" %% "akka-http-cors" % "0.4.0",
   "de.heikoseeberger" % "akka-http-json4s_2.12" % "1.25.2",
   "com.twitter" %% "chill-akka" % "0.9.3",
-  "com.twitter" % "chill-bijection_2.12" % "0.9.3"
+  "com.twitter" % "chill-bijection_2.12" % "0.9.3",
 )	
+
+libraryDependencies ++= Seq(
+  "io.kamon" %% "kamon-core" % "1.1.0",
+  "io.kamon" %% "kamon-logback" % "1.0.0",
+  "io.kamon" %% "kamon-akka-2.5" % "1.0.1",
+  "io.kamon" %% "kamon-prometheus" % "1.0.0",
+  "io.kamon" %% "kamon-zipkin" % "1.0.0"
+)
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 
@@ -75,9 +83,5 @@ PB.targets in Compile := Seq(
   scalapb.gen() -> (sourceManaged in Compile).value
 )
 libraryDependencies += "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
-addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.17")
-scalacOptions += "-P:linter:disable:UseIfExpression+VariableAssignedUnusedValue+UseGetOrElseNotPatMatch"
-scapegoatVersion in ThisBuild := "1.3.3"
-scapegoatDisabledInspections := Seq("OptionGet", "AsInstanceOf","MethodReturningAny")
 
 mainClass in (Compile, packageBin) := Some("rep.app.Repchain")
