@@ -29,6 +29,8 @@ import rep.protos.peer.{Certificate, ChaincodeId, Signer}
 import rep.sc.TransferSpec.{ACTION, SetMap}
 import rep.sc.tpl._//.{CertStatus,CertInfo}
 import rep.sc.tpl.Transfer
+import rep.sc.tpl.{CertInfo}
+import rep.sc.tpl.ContractAssetsTPL2
 import rep.storage.ImpDataAccess
 import rep.utils.SerializeUtils.toJson
 import rep.app.conf.SystemProfile
