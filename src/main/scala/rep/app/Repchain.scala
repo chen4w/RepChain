@@ -19,7 +19,9 @@ package rep.app
 import akka.remote.transport.Transport.InvalidAssociationException
 import rep.app.system.ClusterSystem
 import rep.app.system.ClusterSystem.InitType
-
+import kamon.Kamon
+import kamon.statsd.StatsDReporter
+import kamon.prometheus.PrometheusReporter
 /**
   * Repchain app start
   * @author c4w 2017/9/24.
@@ -27,7 +29,8 @@ import rep.app.system.ClusterSystem.InitType
 object Repchain {
 
   def main(args: Array[String]): Unit = {
-
+     Kamon.addReporter(new StatsDReporter())
+     Kamon.addReporter(new PrometheusReporter())
     //创建系统实例
      var nodelist : Array[String] = new Array[String] (4)
      nodelist(0) = "12110107bi45jh675g.node2"

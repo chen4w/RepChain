@@ -83,5 +83,6 @@ libraryDependencies ++= Seq(
   "io.kamon" %% "kamon-prometheus" % "1.0.0",
   "io.kamon" %% "kamon-zipkin" % "1.0.0"
 )
+libraryDependencies += "io.kamon" %% "kamon-statsd" % "1.0.0"
 
 mainClass in (Compile, packageBin) := Some("rep.app.Repchain")
