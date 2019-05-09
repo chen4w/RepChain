@@ -32,7 +32,7 @@ object Repchain {
   def main(args: Array[String]): Unit = {
      Kamon.addReporter(new StatsDReporter())
      Kamon.addReporter(new PrometheusReporter())
-     Kamon.addReporter(new ZipkinReporter())
+     //Kamon.addReporter(new ZipkinReporter())
     //创建系统实例
      var nodelist : Array[String] = new Array[String] (4)
      nodelist(0) = "12110107bi45jh675g.node2"
