@@ -20,7 +20,6 @@ import rep.storage.block._
 import rep.storage.leveldb._
 import rep.storage.cfg._
 import rep.protos.peer._
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import com.google.protobuf.ByteString
 import com.fasterxml.jackson.core.Base64Variants
@@ -35,6 +34,8 @@ import scala.collection.mutable._
 import rep.network.consensus.util.BlockHelp
 import rep.log.RepLogger
 import rep.utils.SerializeUtils.deserialise
+import rep.storage.util.pathUtil
+
 
 /**
  * @author jiangbuyun
@@ -43,11 +44,11 @@ import rep.utils.SerializeUtils.deserialise
  * @category	实现IDataAccess定义的外部操作方法。
  */
 class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName) {
-  private var bhelp: BlockStorageHelp = null
+  private var filemgr: BlockFileMgr = null
 
   //初始化文件操作实例
-  var bi: BlockInstances = BlockInstances.getDBInstance()
-  bhelp = bi.getBlockHelp(this.SystemName)
+  //var bi: BlockInstances = BlockInstances.getDBInstance()
+  filemgr = new BlockFileMgr(this.SystemName)
 
   /**
    * @author jiangbuyun
@@ -67,7 +68,8 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         rb = getBlockByHash(bh)
       } catch {
         case e: Exception => {
-          RepLogger.error(RepLogger.Storager_Logger,  
+          RepLogger.error(
+            RepLogger.Storager_Logger,
             "base64 is invalidate")
         }
       }
@@ -92,7 +94,8 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     if (value != null) {
       var bidx = new blockindex()
       bidx.InitBlockIndex(value)
-      rb = bhelp.readBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos(), bidx.getBlockLength())
+      rb = filemgr.readBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos(), bidx.getBlockLength())
+      //rb = bhelp.readBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos(), bidx.getBlockLength())
     }
     rb
   }
@@ -179,7 +182,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     rb
   }
 
-   /**
+  /**
    * @author jiangbuyun
    * @version	1.0
    * @since	2019-04-28
@@ -187,7 +190,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @param	bh String 交易的id
    * @return	返回Block对象，如果没有找到，返回null
    */
-  def getBlock4ObjectByTxId(bh:String):Block={
+  def getBlock4ObjectByTxId(bh: String): Block = {
     val bb = getBlockByTxId(bh)
     bb match {
       case null => null
@@ -195,8 +198,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         Block.parseFrom(bb)
     }
   }
-  
-  
+
   /**
    * @author jiangbuyun
    * @version	1.0
@@ -205,7 +207,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @param	txid String 交易的Id值
    * @return	返回Transaction对象，如果没有找到，返回None
    */
-  def getTransDataByTxId(txid:String):Option[Transaction]={
+  def getTransDataByTxId(txid: String): Option[Transaction] = {
     val b = getBlock4ObjectByTxId(txid)
     b match {
       case null => None
@@ -213,7 +215,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         b.transactions.find(_.id == txid)
     }
   }
-  
+
   /**
    * @author jiangbuyun
    * @version	1.0
@@ -222,7 +224,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @param	cid String 链码id
    * @return	返回Transaction对象，如果没有找到，返回None
    */
-  def getTransOfContractFromChaincodeId(cid:String): Option[Transaction]={
+  def getTransOfContractFromChaincodeId(cid: String): Option[Transaction] = {
     val txid = Get(cid)
     if (txid == null) {
       None
@@ -230,8 +232,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
       getTransDataByTxId(deserialise(txid).asInstanceOf[String])
     }
   }
-  
-  
+
   /**
    * @author jiangbuyun
    * @version	0.7
@@ -319,7 +320,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     if (rb != null && rb.length > 0) {
       rbo = new Array[Block](rb.length)
       var i = 0
-      for (i <- 0 to rb.length - 1) {
+      for (i <- 0 until (rb.length - 1)) {
         val tmpb = Block.parseFrom(rb(i))
         rbo(i) = tmpb
       }
@@ -388,13 +389,13 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
       } else {
         rbc = rbc.withPreviousBlockHash(_root_.com.google.protobuf.ByteString.EMPTY)
       }
-      
+
       if (statehash != null && !statehash.equalsIgnoreCase("")) {
         rbc = rbc.withCurrentStateHash(ByteString.copyFromUtf8(statehash))
       } else {
         rbc = rbc.withCurrentStateHash(_root_.com.google.protobuf.ByteString.EMPTY)
       }
-      
+
     }
 
     rbc = rbc.withHeight(currentheight)
@@ -515,6 +516,11 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     }
   }
 
+  override def rollbackToheight(toHeight: Long): Boolean = {
+    val rs = new Rollback4Storager(this,filemgr)
+    rs.rollbackToheight(toHeight)
+  }
+
   /**
    * @author jiangbuyun
    * @version	0.7
@@ -523,9 +529,9 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @param	block  待写入系统的区块
    * @return	如果成功返回true，否则返回false
    */
-  override def restoreBlock(block: Block): (Boolean,Long,Long,String,String,String) = {
-    if (block == null) return (false,0l,0l,"","","")
-    if (block.hashOfBlock == null || block.hashOfBlock.isEmpty()) return (false,0l,0l,"","","")
+  override def restoreBlock(block: Block): (Boolean, Long, Long, String, String, String) = {
+    if (block == null) return (false, 0l, 0l, "", "", "")
+    if (block.hashOfBlock == null || block.hashOfBlock.isEmpty()) return (false, 0l, 0l, "", "", "")
     synchronized {
       val oldh = getBlockHeight()
       val oldno = this.getMaxFileNo()
@@ -541,12 +547,12 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         try {
           this.BeginTrans
           WriteOperLogToDBWithRestoreBlock(block)
-          if (this.commitAndAddBlock(block,oldh,oldno,oldtxnumber)) {
+          if (this.commitAndAddBlock(block, oldh, oldno, oldtxnumber)) {
             this.CommitTrans
-            (true,block.height,oldtxnumber+block.transactions.length,block.hashOfBlock.toStringUtf8(),block.previousBlockHash.toStringUtf8(),block.stateHash.toStringUtf8())
+            (true, block.height, oldtxnumber + block.transactions.length, block.hashOfBlock.toStringUtf8(), block.previousBlockHash.toStringUtf8(), block.stateHash.toStringUtf8())
           } else {
             this.RollbackTrans
-            (false,0l,0l,"","","")
+            (false, 0l, 0l, "", "", "")
           }
         } catch {
           case e: Exception => {
@@ -573,13 +579,14 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @param	_block Array[Block] 待写入系统的区块
    * @return	成功返回true，否则false
    */
-  private def commitAndAddBlock(block: Block,oldh:Long,oldno:Int,oldtxnumber:Long): Boolean = {
+  private def commitAndAddBlock(block: Block, oldh: Long, oldno: Int, oldtxnumber: Long): Boolean = {
     var b: Boolean = false
     //var block = _block
     if (block == null) return b
     if (block.hashOfBlock == null || block.hashOfBlock.isEmpty()) return b
     if (block.previousBlockHash == null) return b
-    RepLogger.trace(RepLogger.Storager_Logger,  
+    RepLogger.trace(
+      RepLogger.Storager_Logger,
       "system_name=" + this.SystemName + "\t store a block")
     synchronized {
       try {
@@ -587,31 +594,33 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         bidx.InitBlockIndex(block)
         var newh = block.height
         setBlockHeight(newh)
-       
+
         var newno = oldno
         var newtxnumber = oldtxnumber
         val rbb = block.toByteArray
         val blenght = rbb.length
         //jiangbuyun modify 20180430,块写入文件系统时，增加块长度写入文件中，方便以后没有leveldb时，可以完全依靠块文件快速恢复系统，判断长度是否超过文件的最大长度
-        if (bhelp.isAddFile(oldno, blenght + 8)) {
+        if (filemgr.isAddFile(oldno, blenght + 8)) {
           newno = oldno + 1
           setMaxFileNo(newno)
-          setFileFirstHeight(newno,newh)
-        }else if(newh == 1 && newno == 0 ){
-          setFileFirstHeight(newno,newh)
+          setFileFirstHeight(newno, newh)
+        } else if (newh == 1 && newno == 0) {
+          setFileFirstHeight(newno, newh)
         }
-        val startpos = bhelp.getFileLength(newno)
+        val startpos = filemgr.getFileLength(newno)
         bidx.setBlockFileNo(newno)
         //jiangbuyun modify 20180430,块写入文件系统时，增加块长度写入文件中，方便以后没有leveldb时，可以完全依靠块文件快速恢复系统，调整块数据的写入初始位置
         //bidx.setBlockFilePos(startpos)
         bidx.setBlockFilePos(startpos + 8)
         bidx.setBlockLength(blenght)
 
-        RepLogger.trace(RepLogger.Storager_Logger,  
+        RepLogger.trace(
+          RepLogger.Storager_Logger,
           "system_name=" + this.SystemName + "\t new height=" + newh + "\t new file no=" + newno + "\t new tx number=" + newtxnumber)
 
         this.Put(IdxPrefix.IdxBlockPrefix + bidx.getBlockHash(), bidx.toArrayByte())
-        RepLogger.trace(RepLogger.Storager_Logger,  
+        RepLogger.trace(
+          RepLogger.Storager_Logger,
           "system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash())
 
         this.Put(IdxPrefix.IdxBlockHeight + newh, bidx.getBlockHash().getBytes())
@@ -625,10 +634,11 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         this.setBlockAllTxNumber(newtxnumber)
         //jiangbuyun modify 20180430,块写入文件系统时，增加块长度写入文件中，方便以后没有leveldb时，可以完全依靠块文件快速恢复系统,该位置实现字节数组的合并
         //bhelp.writeBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos(), rbb)
-        bhelp.writeBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos() - 8, BlockStorageHelp.longToByte(blenght) ++ rbb)
+        filemgr.writeBlock(bidx.getBlockFileNo(), bidx.getBlockFilePos() - 8, pathUtil.longToByte(blenght) ++ rbb)
 
         b = true
-        RepLogger.trace(RepLogger.Storager_Logger,  
+        RepLogger.trace(
+          RepLogger.Storager_Logger,
           "system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash() + "\tcommited success")
       } catch {
         case e: Exception => {
@@ -747,14 +757,18 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     this.Put(IdxPrefix.MaxFileNo, String.valueOf(no).getBytes)
   }
 
-  private def setFileFirstHeight(no:Int,height:Long)={
-    this.Put(IdxPrefix.FirstHeightOfFilePrefix+no+IdxPrefix.FirstHeightOfFileSuffix, String.valueOf(height).getBytes)
+  private def setFileFirstHeight(no: Int, height: Long) = {
+    this.Put(IdxPrefix.FirstHeightOfFilePrefix + no + IdxPrefix.FirstHeightOfFileSuffix, String.valueOf(height).getBytes)
+  }
+
+  def getFileFirstHeight(no: Int): Long = {
+    this.toLong(this.Get(IdxPrefix.FirstHeightOfFilePrefix + no + IdxPrefix.FirstHeightOfFileSuffix))
   }
   
-  def getFileFirstHeight(no:Int):Long={
-    this.toLong(this.Get(IdxPrefix.FirstHeightOfFilePrefix+no+IdxPrefix.FirstHeightOfFileSuffix))
+  def rmFileFirstHeight(no:Int){
+    this.Delete(IdxPrefix.FirstHeightOfFilePrefix + no + IdxPrefix.FirstHeightOfFileSuffix)
   }
-  
+
   ////////////////////以下是用来存储文件的////////////////////////////////////
   /**
    * @author jiangbuyun
@@ -765,7 +779,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @return	返回读取的区块字节数组
    */
   private def readBlock(fileno: Long, startpos: Long, length: Int): Array[Byte] = {
-    val bs = bhelp.readBlock(fileno, startpos, length)
+    val bs = filemgr.readBlock(fileno, startpos, length)
     bs
   }
 
@@ -778,7 +792,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
    * @return	如果写入成功返回true，否则false
    */
   private def writeBlock(fileno: Long, startpos: Long, bb: Array[Byte]): Boolean = {
-    val b = bhelp.writeBlock(fileno, startpos, bb)
+    val b = filemgr.writeBlock(fileno, startpos, bb)
     b
   }
   /////////////////end////////////////////////////////////////////////////
