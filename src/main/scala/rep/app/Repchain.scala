@@ -30,7 +30,7 @@ import kamon.zipkin.ZipkinReporter
 object Repchain {
 
   def main(args: Array[String]): Unit = {
-     Kamon.addReporter(new StatsDReporter())
+     //Kamon.addReporter(new StatsDReporter())
      //Kamon.addReporter(new PrometheusReporter())
      Kamon.addReporter(new ZipkinReporter())
     //创建系统实例
