@@ -113,7 +113,7 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
   
   private def getBlockData(height: Long, ref: ActorRef): Boolean = {
     try {
-      sendEvent(EventType.PUBLISH_INFO, mediator,pe.getSysTag, BlockEvent.CHAIN_INFO_SYNC,  Event.Action.BLOCK_SYNC)
+      sendEvent(EventType.PUBLISH_INFO, mediator,pe.getSysTag, pe.getNodeMgr.getNodeName4AddrString(NodeHelp.getNodeAddress(ref)) ,  Event.Action.BLOCK_SYNC_DATA)
       val future1 = ref ? BlockDataOfRequest(height)
       //logMsg(LogType.INFO, "--------AsyncGetNodeOfChainInfo success")
       var result = Await.result(future1, timeout.duration).asInstanceOf[BlockDataOfResponse]
@@ -175,14 +175,15 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
     sendEvent(EventType.PUBLISH_INFO, mediator,pe.getSysTag, BlockEvent.CHAIN_INFO_SYNC,  Event.Action.BLOCK_SYNC)
     val res = AsyncGetNodeOfChainInfos(nodes,lh)
     
+    //if(pe.getSysTag == "921000006e0012v696.node5"){
+    //  println("921000006e0012v696.node5")
+    //}
+    
     val parser = new SynchResponseInfoAnalyzer(pe.getSysTag, pe.getSystemCurrentChainStatus, pe.getNodeMgr)
     parser.Parser(res)
     val result = parser.getResult
     val rresult = parser.getRollbackAction
     val sresult = parser.getSynchActiob
-    
-    
-    
     
     if(result.ar){
       if(rresult != null){
@@ -216,7 +217,12 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
       initSystemChainInfo
       if (pe.getNodeMgr.getStableNodes.size >= SystemProfile.getVoteNoteMin && !pe.isSynching) {
         pe.setSynching(true)
-        Handler
+        try{
+          Handler
+        }catch{
+          case e:Exception =>
+            RepLogger.trace(RepLogger.BlockSyncher_Logger, this.getLogMsgPrefix(s"request synch excep,msg=${e.getMessage}"))
+        }
         pe.setSynching(false)
         if (isNoticeModuleMgr)
           pe.getActorRef(ActorType.modulemanager) ! ModuleManager.startup_Consensus
@@ -227,8 +233,12 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
     case SyncRequestOfStorager(responser, maxHeight) =>
       if (!pe.isSynching) {
         pe.setSynching(true)
+         //if(pe.getSysTag == "921000006e0012v696.node5"){
+         //   println("921000006e0012v696.node5")
+         // }
         getBlockDatas(pe.getCurrentHeight,maxHeight,responser)
         pe.setSynching(false)
+        //pe.getActorRef(ActorType.modulemanager) ! ModuleManager.startup_Consensus
       }
   }
 }

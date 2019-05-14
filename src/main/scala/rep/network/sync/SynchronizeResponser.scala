@@ -54,8 +54,9 @@ class SynchronizeResponser(moduleName: String) extends ModuleBase(moduleName) {
         var ChainInfoOfSpecifiedHeight : BlockchainInfo = BlockchainInfo(0l, 0l, _root_.com.google.protobuf.ByteString.EMPTY,
                                                                         _root_.com.google.protobuf.ByteString.EMPTY,
                                                                         _root_.com.google.protobuf.ByteString.EMPTY)
-        if(height < responseInfo.height){
+        if(height >0 && height < responseInfo.height){
           val b = dataaccess.getBlock4ObjectByHeight(height)
+          RepLogger.trace(RepLogger.BlockSyncher_Logger, this.getLogMsgPrefix(  s"node number:${pe.getSysTag},recv synch chaininfo request,request height:${height},local chaininof=${responseInfo.height}"))
           ChainInfoOfSpecifiedHeight = ChainInfoOfSpecifiedHeight.withHeight(height)
           ChainInfoOfSpecifiedHeight = ChainInfoOfSpecifiedHeight.withCurrentBlockHash(b.hashOfBlock)
           ChainInfoOfSpecifiedHeight = ChainInfoOfSpecifiedHeight.withPreviousBlockHash(b.previousBlockHash)
@@ -65,7 +66,6 @@ class SynchronizeResponser(moduleName: String) extends ModuleBase(moduleName) {
       //}
 
     case BlockDataOfRequest(startHeight) =>
-      sendEvent(EventType.RECEIVE_INFO, mediator,pe.getSysTag, BlockEvent.CHAIN_INFO_SYNC,  Event.Action.BLOCK_SYNC)
       RepLogger.trace(RepLogger.BlockSyncher_Logger, this.getLogMsgPrefix(  s"node number:${pe.getSysTag},start block number:${startHeight},Get a data request from  $sender" + "～" + selfAddr))
       val local = dataaccess.getBlockChainInfo()
       var data = Block()
@@ -73,7 +73,7 @@ class SynchronizeResponser(moduleName: String) extends ModuleBase(moduleName) {
         data = dataaccess.getBlock4ObjectByHeight(startHeight)
         sender  ! SyncMsg.BlockDataOfResponse(data)
       }
-
+      sendEvent(EventType.PUBLISH_INFO, mediator,pe.getSysTag, pe.getNodeMgr.getNodeName4AddrString(NodeHelp.getNodeAddress(sender)), Event.Action.BLOCK_SYNC_DATA)
   }
 
 }

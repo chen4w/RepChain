@@ -85,4 +85,11 @@ libraryDependencies ++= Seq(
 )
 libraryDependencies += "io.kamon" %% "kamon-statsd" % "1.0.0"
 
-mainClass in (Compile, packageBin) := Some("rep.app.Repchain")
+assemblyMergeStrategy in assembly := {
+  case PathList("org", "iq80", "leveldb", xs @ _*) => MergeStrategy.first
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
+}
+
+mainClass in (Compile, packageBin) := Some("rep.app.Repchain_Single")
