@@ -26,7 +26,7 @@ import rep.protos.peer.{Transaction}
   */
 object GlobalUtils {
   case class TranscationPoolPackage(t:Transaction,createTime:Long)
-  case class BlockerInfo(blocker:String,VoteIndex:Int,voteTime:Long)
+  case class BlockerInfo(blocker:String,VoteIndex:Int,voteTime:Long,voteBlockHash:String,VoteHeight:Long)
   case object NodeStatus {
     val Blocking = 1
     val Endorsing = 2
@@ -37,7 +37,7 @@ object GlobalUtils {
   
   case object BlockEvent{
     //同步信息广播
-    val CHAIN_INFO_SYNC = "CHAIN_INFO_SYNC"
+    val CHAIN_INFO_SYNC = "Sync"
     //创建block
     val CREATE_BLOCK = "CREATE_BLOCK"
     //出块人
@@ -81,6 +81,8 @@ object GlobalUtils {
     val gensisblock = 17
     val api = 18
     val transactiondispatcher = 19
+    val dispatchofRecvendorsement = 20
+    val dispatchofpreload = 21
   }
   
   

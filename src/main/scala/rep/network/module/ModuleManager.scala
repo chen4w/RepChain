@@ -24,14 +24,13 @@ import rep.network.PeerHelper
 import rep.network.base.ModuleBase
 import rep.network.cache.TransactionPool
 import rep.network.persistence.Storager
-import rep.network.tools.Statistic.StatisticCollection
 import rep.ui.web.EventServer
 import rep.network.cluster.MemberListener
 import rep.network.sync.{ SynchronizeResponser, SynchronizeRequester4Future }
 import rep.sc.TransactionDispatcher
 import rep.network.consensus.block.{ GenesisBlocker, ConfirmOfBlock, EndorseCollector, Blocker }
-import rep.network.consensus.endorse.{Endorser4Future}
-import rep.network.consensus.transaction.{PreloaderForTransaction}
+import rep.network.consensus.endorse.{Endorser4Future,DispatchOfRecvEndorsement}
+import rep.network.consensus.transaction.{DispatchOfPreload,PreloaderForTransaction}
 import rep.network.consensus.vote.Voter
 
 import rep.storage.ImpDataAccess
@@ -40,6 +39,7 @@ import rep.utils.GlobalUtils.ActorType
 import rep.crypto.cert.SignTool
 import rep.log.RepLogger
 import rep.storage.verify.verify4Storage
+import rep.log.RepTimeTracer
 
 /**
  * Created by shidianyue on 2017/9/22.
@@ -102,14 +102,17 @@ class ModuleManager(moduleName: String, sysTag: String, enableStatistic: Boolean
       context.actorOf(ConfirmOfBlock.props("confirmerofblock"), "confirmerofblock")
       context.actorOf(EndorseCollector.props("endorsementcollectioner"), "endorsementcollectioner")
       
-      //context.actorOf(Endorser.props("endorser"), "endorser")
-      context.actorOf(Endorser4Future.props("endorser"), "endorser")
+      
+      //context.actorOf(Endorser4Future.props("endorser"), "endorser")
+      context.actorOf(DispatchOfRecvEndorsement.props("dispatchofRecvendorsement"), "dispatchofRecvendorsement")
+      
+      
       if(this.isStartup){
         context.actorOf(TransactionDispatcher.props("transactiondispatcher"), "transactiondispatcher")
         //context.actorOf(PreloaderForTransaction.props("preloaderoftransaction"),"preloaderoftransaction")
       }
-      context.actorOf(PreloaderForTransaction.props("preloaderoftransaction"),"preloaderoftransaction")
-      
+      //context.actorOf(PreloaderForTransaction.props("preloaderoftransaction"),"preloaderoftransaction")
+      context.actorOf(DispatchOfPreload.props("dispatchofpreload"), "dispatchofpreload")
       
       context.actorOf(Voter.props("voter"), "voter")
       context.actorOf(TransactionPool.props("transactionpool"), "transactionpool")
@@ -117,7 +120,8 @@ class ModuleManager(moduleName: String, sysTag: String, enableStatistic: Boolean
   }
 
   def loadApiModule = {
-    if (enableStatistic) context.actorOf(Props[StatisticCollection], "statistic")
+    //if (enableStatistic) context.actorOf(Props[StatisticCollection], "statistic")
+    if (enableStatistic) RepTimeTracer.openTimeTrace else RepTimeTracer.closeTimeTrace
     if (enableWebSocket) /*{if(pe.getActorRef(ActorType.webapi) == null) */context.system.actorOf(Props[EventServer], "webapi")
 
   }
@@ -135,17 +139,13 @@ class ModuleManager(moduleName: String, sysTag: String, enableStatistic: Boolean
   //除了广播消息，P2P的跨域消息都通过其中转（同步，存储等）
   override def receive: Receive = {
     case ModuleManager.startup_Consensus => 
-      if (SystemProfile.getTransCreateType == Trans_Create_Type_Enum.AUTO) {
-        if(pe.getActorRef(ActorType.peerhelper) == null){
+      if (SystemProfile.getTransCreateType == Trans_Create_Type_Enum.AUTO && pe.getActorRef(ActorType.peerhelper) == null) {
           context.actorOf(PeerHelper.props("peerhelper"), "peerhelper")
-        }
       }
-      if(pe.getActorRef(ActorType.voter) != null){
-        pe.getActorRef(ActorType.voter) ! Voter.VoteOfBlocker
-      }else{
+      if(pe.getActorRef(ActorType.voter) == null){
         context.actorOf(Voter.props("voter"), "voter")
-        pe.getActorRef(ActorType.voter) ! Voter.VoteOfBlocker
       }
+      pe.getActorRef(ActorType.voter) ! Voter.VoteOfBlocker
     case _ => //ignore
   }
 }

@@ -129,15 +129,13 @@ class PreloaderForTransaction(moduleName: String) extends ModuleBase(moduleName)
 
   override def receive = {
     case PreTransBlock(block,prefixOfDbTag) =>
-      
       RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(  "entry preload"))
-      logTime("block preload inner time", System.currentTimeMillis(), true)
-      if ((block.previousBlockHash.toStringUtf8().equals(pe.getCurrentBlockHash) || block.previousBlockHash == ByteString.EMPTY) &&
+      if ((block.previousBlockHash.toStringUtf8() == pe.getCurrentBlockHash || block.previousBlockHash == ByteString.EMPTY) &&
         block.height == (pe.getCurrentHeight + 1)) {
         var preLoadTrans = mutable.HashMap.empty[String, Transaction]
         preLoadTrans = block.transactions.map(trans => (trans.id, trans))(breakOut): mutable.HashMap[String, Transaction]
         var transResult = Seq.empty[rep.protos.peer.TransactionResult]
-        val dbtag = prefixOfDbTag+"_"+block.transactions.head.id
+        val dbtag = prefixOfDbTag+"_"+moduleName+"_"+block.transactions.head.id
         //确保提交的时候顺序执行
         block.transactions.map(t => {
           var ts = Handler(t, preLoadTrans, dbtag)
@@ -156,7 +154,6 @@ class PreloaderForTransaction(moduleName: String) extends ModuleBase(moduleName)
           //全部或者部分交易成功
           sender ! PreTransBlockResult(newblock.get,true)
         }
-        logTime("block preload inner time", System.currentTimeMillis(), false)
       }
     case _ => //ignore
   }

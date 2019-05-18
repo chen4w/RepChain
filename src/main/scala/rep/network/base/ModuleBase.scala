@@ -76,6 +76,8 @@ abstract class  ModuleBase(name: String) extends Actor  with ClusterActor with B
       case "gensisblock"  => 17
       case "api" => 18
       case "transactiondispatcher" => 19
+      case "dispatchofRecvendorsement" => 20
+      case "dispatchofpreload" => 21
       case _ => 0
     }
   }
@@ -95,11 +97,11 @@ abstract class  ModuleBase(name: String) extends Actor  with ClusterActor with B
     * @param step
     * @param actorRef
     */
-  def logTime(timetag:String,time:Long,isstart:Boolean): Unit = {
+  def logTime(timetag:String,time:Long,isstart:Boolean,bheight:Long,trannum:Int): Unit = {
     if(isstart){
-      RepTimeTracer.setStartTime(pe.getSysTag, timetag, time)
+      RepTimeTracer.setStartTime(pe.getSysTag, timetag, time,bheight,trannum)
     }else{
-      RepTimeTracer.setEndTime(pe.getSysTag, timetag, time)
+      RepTimeTracer.setEndTime(pe.getSysTag, timetag, time,bheight,trannum)
     }
   }
 }
