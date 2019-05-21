@@ -75,10 +75,18 @@ PB.targets in Compile := Seq(
   scalapb.gen() -> (sourceManaged in Compile).value
 )
 libraryDependencies += "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
-addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.17")
-scalacOptions += "-P:linter:disable:UseIfExpression+VariableAssignedUnusedValue+UseGetOrElseNotPatMatch"
-scapegoatVersion in ThisBuild := "1.3.3"
-scapegoatDisabledInspections := Seq("OptionGet", "AsInstanceOf","MethodReturningAny")
+
+libraryDependencies ++= Seq(
+  "io.kamon" %% "kamon-core" % "1.1.0",
+  "io.kamon" %% "kamon-logback" % "1.0.0",
+  "io.kamon" %% "kamon-akka-2.5" % "1.0.1",
+  "io.kamon" %% "kamon-prometheus" % "1.0.0",
+  "io.kamon" %% "kamon-zipkin" % "1.0.0"
+)
+libraryDependencies += "io.kamon" %% "kamon-statsd" % "1.0.0"
+
+
+
 
 assemblyMergeStrategy in assembly := {
   case PathList("org", "iq80", "leveldb", xs @ _*) => MergeStrategy.first

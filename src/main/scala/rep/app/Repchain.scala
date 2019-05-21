@@ -20,9 +20,10 @@ import akka.remote.transport.Transport.InvalidAssociationException
 import rep.app.system.ClusterSystem
 import rep.app.system.ClusterSystem.InitType
 
+import kamon.Kamon
+import kamon.statsd.StatsDReporter
 import kamon.prometheus.PrometheusReporter
 import kamon.zipkin.ZipkinReporter
-import kamon.Kamon
 /**
   * Repchain app start
   * @author c4w 2017/9/24.
@@ -30,8 +31,12 @@ import kamon.Kamon
 object Repchain {
 
   def main(args: Array[String]): Unit = {
-      Kamon.addReporter(new PrometheusReporter())
-      Kamon.addReporter(new ZipkinReporter())
+      //Kamon.addReporter(new PrometheusReporter())
+      //Kamon.addReporter(new ZipkinReporter())
+    
+    Kamon.addReporter(new StatsDReporter())
+     Kamon.addReporter(new PrometheusReporter())
+     Kamon.addReporter(new ZipkinReporter())
       
     //创建系统实例
      var nodelist : Array[String] = new Array[String] (4)
