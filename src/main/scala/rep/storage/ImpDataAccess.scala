@@ -798,9 +798,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
     if (block == null) return b
     if (block.hashOfBlock == null || block.hashOfBlock.isEmpty()) return b
     if (block.previousBlockHash == null) return b
-    RepLogger.trace(
-      RepLogger.Storager_Logger,
-      "system_name=" + this.SystemName + "\t store a block")
+    RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + this.SystemName + "\t store a block")
     synchronized {
       try {
         var bidx = new blockindex()
@@ -827,14 +825,10 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         bidx.setBlockFilePos(startpos + 8)
         bidx.setBlockLength(blenght)
 
-        RepLogger.trace(
-          RepLogger.Storager_Logger,
-          "system_name=" + this.SystemName + "\t new height=" + newh + "\t new file no=" + newno + "\t new tx number=" + newtxnumber)
+        RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + this.SystemName + "\t new height=" + newh + "\t new file no=" + newno + "\t new tx number=" + newtxnumber)
 
         this.Put(IdxPrefix.IdxBlockPrefix + bidx.getBlockHash(), bidx.toArrayByte())
-        RepLogger.trace(
-          RepLogger.Storager_Logger,
-          "system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash())
+        RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash())
 
         this.Put(IdxPrefix.IdxBlockHeight + newh, bidx.getBlockHash().getBytes())
         val ts = bidx.getTxIds()
@@ -852,9 +846,7 @@ class ImpDataAccess private (SystemName: String) extends IDataAccess(SystemName)
         RepTimeTracer.setEndTime(this.SystemName, "storage-save-write-file", System.currentTimeMillis(), block.height, block.transactions.size)
         b = true
 
-        RepLogger.trace(
-          RepLogger.Storager_Logger,
-          "system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash() + "\tcommited success")
+        RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + this.SystemName + "\t blockhash=" + bidx.getBlockHash() + "\tcommited success")
       } catch {
         case e: Exception => {
           this.setBlockHeight(oldh)

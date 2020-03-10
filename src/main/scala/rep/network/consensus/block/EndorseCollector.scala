@@ -16,34 +16,23 @@
 
 package rep.network.consensus.block
 
-import akka.actor.{ Actor, ActorRef, Props, Address, ActorSelection }
+import akka.actor.Props
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
-import akka.routing._;
-import rep.app.conf.{ SystemProfile, TimePolicy }
-import rep.network.base.ModuleBase
-import rep.network.consensus.endorse.EndorseMsg.{ RequesterOfEndorsement, ResultOfEndorseRequester, CollectEndorsement,ResendEndorseInfo }
-import rep.network.consensus.block.Blocker.ConfirmedBlock
-import rep.network.tools.PeerExtension
-import rep.network.Topic
-import rep.protos.peer._
-import rep.utils.GlobalUtils.{ EventType }
-import rep.utils._
-import scala.collection.mutable._
-import rep.network.consensus.util.BlockVerify
-import scala.util.control.Breaks
-import rep.network.util.NodeHelp
-import rep.network.consensus.util.BlockHelp
-import rep.network.consensus.util.BlockVerify
+import akka.routing._
+import rep.app.conf.SystemProfile
 import rep.log.RepLogger
-import rep.log.RepTimeTracer
+import rep.network.Topic
+import rep.network.base.ModuleBase
+import rep.network.consensus.block.Blocker.ConfirmedBlock
+import rep.network.consensus.endorse.EndorseMsg.{CollectEndorsement, MsgPbftReplyOk, RequesterOfEndorsement}
+import rep.protos.peer._
+import rep.utils.GlobalUtils.EventType
 
 object EndorseCollector {
   def props(name: String): Props = Props(classOf[EndorseCollector], name)
 }
 
 class EndorseCollector(moduleName: String) extends ModuleBase(moduleName) {
-  import context.dispatcher
-  import scala.concurrent.duration._
   import scala.collection.immutable._
 
   private var router: Router = null
@@ -80,31 +69,9 @@ class EndorseCollector(moduleName: String) extends ModuleBase(moduleName) {
     this.recvedEndorse = this.recvedEndorse.empty
   }
 
- 
-
-  private def CheckAndFinishHandler {
-    sendEvent(EventType.PUBLISH_INFO, mediator, pe.getSysTag, Topic.Endorsement, Event.Action.ENDORSEMENT)
-    RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix("entry collectioner check  "))
-    if (NodeHelp.ConsensusConditionChecked(this.recvedEndorse.size + 1, pe.getNodeMgr.getStableNodes.size)) {
-      RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix("collectioner package endorsement to block"))
-      this.recvedEndorse.foreach(f => {
-        this.block = BlockHelp.AddEndorsementToBlock(this.block, f._2)
-      })
-      var consensus = this.block.endorsements.toArray[Signature]
-      consensus=BlockVerify.sort(consensus)
-      RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix("collectioner endorsement sort"))
-      this.block = this.block.withEndorsements(consensus)
-      RepTimeTracer.setEndTime(pe.getSysTag, "Endorsement", System.currentTimeMillis(),this.block.height,this.block.transactions.size)
-      mediator ! Publish(Topic.Block, new ConfirmedBlock(this.block, sender))
-      RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( "collectioner endorsementt finish"))
-      clearEndorseInfo
-    } else {
-      RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"collectioner check is error,get size=${this.recvedEndorse.size}"))
-    }
-  }
-
   override def receive = {
     case CollectEndorsement(block, blocker) =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", EndorseCollector recv CollectEndorsement: " + ", " + block.hashOfBlock)
       if(!pe.isSynching){
         createRouter
         if (this.block != null && this.block.hashOfBlock.toStringUtf8() == block.hashOfBlock.toStringUtf8()) {
@@ -122,33 +89,24 @@ class EndorseCollector(moduleName: String) extends ModuleBase(moduleName) {
           }
         }
       }
-    case ResultOfEndorseRequester(result, endors, blockhash, endorser) =>
-      if(!pe.isSynching){
+
+    case MsgPbftReplyOk(block) =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", EndorseCollector recv replyok: " + ", " + block.hashOfBlock)
+      if(!pe.isSynching) {
         //block不空，该块的上一个块等于最后存储的hash，背书结果的块hash跟当前发出的块hash一致
-        if (this.block != null && this.block.previousBlockHash.toStringUtf8() == pe.getCurrentBlockHash && this.block.hashOfBlock.toStringUtf8() == blockhash) {
-            if (result) {
-              RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( s"collectioner recv endorsement result,height=${block.height},local height=${pe.getCurrentHeight}"))
-              recvedEndorse += endorser.toString -> endors
-              CheckAndFinishHandler
-            } else {
-              RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"collectioner recv endorsement result,is error,height=${block.height},local height=${pe.getCurrentHeight}"))
-            }
-        }else{
-          RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( s"collectioner back out endorsement result,local height=${pe.getCurrentHeight}"))
+        val hash = pe.getCurrentBlockHash
+        if (this.block != null)
+          if (this.block.previousBlockHash.toStringUtf8 == hash)
+            if (this.block.hashOfBlock == block.hashOfBlock) {
+              sendEvent(EventType.PUBLISH_INFO, mediator, pe.getSysTag, Topic.Endorsement, Event.Action.ENDORSEMENT)
+              this.block = this.block.withReplies(block.replies)
+              mediator ! Publish(Topic.Block, new ConfirmedBlock(this.block, sender))
+              clearEndorseInfo
         }
+      } else{
+        RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( s"collectioner back out endorsement result,local height=${pe.getCurrentHeight}"))
       }
-    case ResendEndorseInfo(endorer)=>
-      if(!pe.isSynching){
-        if (this.block != null && this.block.previousBlockHash.toStringUtf8() == pe.getCurrentBlockHash ) {
-          if(this.router != null){
-            router.route(RequesterOfEndorsement(this.block, this.blocker, endorer), self)
-          }else{
-            RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( s"collectioner's router is null,height=${block.height},local height=${pe.getCurrentHeight}"))
-          }
-        }else{
-          RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix( s"collectioner back out resend endorsement request,local height=${pe.getCurrentHeight}"))
-        }
-      }
+
     case _ => //ignore
   }
 }

@@ -83,6 +83,12 @@ object GlobalUtils {
     val transactiondispatcher = 19
     val dispatchofRecvendorsement = 20
     val dispatchofpreload = 21
+
+    //zhj
+    val pbftpreprepare = 22
+    val pbftprepare = 23
+    val pbftcommit = 24
+
   }
   
   

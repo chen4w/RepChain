@@ -233,10 +233,12 @@ class ClusterSystem(sysTag: String, initType: Int, sysStart: Boolean) {
   def start = {
     SystemProfile.initConfigSystem(sysActor.settings.config)
 
+    //zhj mount disk
+    /*
     if (!hasDiskSpace) {
       Cluster(sysActor).down(clusterAddr)
       throw new Exception("not enough disk space")
-    }
+    }*/
 
     moduleManager = sysActor.actorOf(ModuleManager.props("modulemanager", sysTag, enableStatistic, enableWebSocket, true), "modulemanager")
 

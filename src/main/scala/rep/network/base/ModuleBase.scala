@@ -80,6 +80,12 @@ abstract class  ModuleBase(name: String) extends Actor  with ClusterActor with B
       case "transactiondispatcher" => 19
       case "dispatchofRecvendorsement" => 20
       case "dispatchofpreload" => 21
+
+        //zhj
+      case "pbftpreprepare" => 22
+      case "pbftprepare" => 23
+      case "pbftcommit" => 24
+
       case _ => 0
     }
   }
@@ -95,9 +101,6 @@ abstract class  ModuleBase(name: String) extends Actor  with ClusterActor with B
   
   /**
     * 事件时间戳封装
-    * @param msg
-    * @param step
-    * @param actorRef
     */
   def logTime(timetag:String,time:Long,isstart:Boolean,bheight:Long,trannum:Int): Unit = {
     if(isstart){

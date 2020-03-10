@@ -135,11 +135,11 @@ object GenesisBuilder {
     /*blk = blk.withEndorsements(Seq(
         BlockHelp.SignDataOfBlock(blk_hash,"951002007l78123233.super_admin"),
         BlockHelp.SignDataOfBlock(blk_hash,"121000005l35120456.node1")))*/
-        blk = blk.clearEndorsements
+        blk = blk.clearEndorsements.clearReplies
         blk = blk.clearTransactionResults
     val r = JsonFormat.toJson(blk)   
     val rstr = pretty(render(r))
-    println(rstr)
+    //println(rstr)
 
     val pw = new PrintWriter("json/gensis.json","UTF-8")
     pw.write(rstr)

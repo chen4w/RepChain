@@ -16,30 +16,18 @@
 
 package rep.network.consensus.block
 
+import akka.actor.{ActorRef, Props}
 import akka.util.Timeout
-import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.pattern.AskTimeoutException
-import scala.concurrent._
-import rep.app.conf.{ SystemProfile }
-import akka.actor.{ ActorRef, Props, Address }
-import rep.crypto.Sha256
-import rep.network.base.ModuleBase
+import rep.app.conf.SystemProfile
+import rep.log.{RepLogger, RepTimeTracer}
 import rep.network.Topic
-import rep.network.util.NodeHelp
-import rep.protos.peer.{ Event, Transaction }
-import rep.utils.GlobalUtils.{ ActorType, BlockEvent, EventType, NodeStatus }
-import com.sun.beans.decoder.FalseElementHandler
-import scala.util.control.Breaks._
-import scala.util.control.Exception.Finally
-import java.util.concurrent.ConcurrentHashMap
-import rep.network.consensus.block.Blocker.{ ConfirmedBlock }
-import rep.network.persistence.Storager.{ BlockRestore, SourceOfBlock, BatchStore }
-import rep.network.consensus.util.{ BlockVerify, BlockHelp }
-import rep.log.RepLogger
-import rep.log.RepTimeTracer
-import rep.network.sync.SyncMsg.SyncRequestOfStorager
-import rep.network.consensus.vote.Voter.VoteOfBlocker
+import rep.network.base.ModuleBase
+import rep.network.consensus.block.Blocker.ConfirmedBlock
+import rep.network.consensus.util.BlockVerify
+import rep.network.persistence.Storager.{BatchStore, BlockRestore, SourceOfBlock}
+import rep.utils.GlobalUtils.{ActorType, EventType}
+
+import scala.concurrent._
 
 object ConfirmOfBlock {
   def props(name: String): Props = Props(classOf[ConfirmOfBlock], name)
@@ -52,10 +40,11 @@ class ConfirmOfBlock(moduleName: String) extends ModuleBase(moduleName) {
     RepLogger.info(RepLogger.Consensus_Logger, this.getLogMsgPrefix("confirm Block module start"))
     SubscribeTopic(mediator, self, selfAddr, Topic.Block, false)
   }
-  import scala.concurrent.duration._
   import rep.protos.peer._
 
-  implicit val timeout = Timeout(3.seconds)
+  import scala.concurrent.duration._
+
+  implicit val timeout = Timeout(30.seconds)
 
   private def asyncVerifyEndorse(e: Signature, byteOfBlock: Array[Byte]): Future[Boolean] = {
     val result = Promise[Boolean]
@@ -69,11 +58,32 @@ class ConfirmOfBlock(moduleName: String) extends ModuleBase(moduleName) {
     result.future
   }
 
+  //zhj
+  case class DataSig(data:Array[Byte], sig : Signature)
+
   private def asyncVerifyEndorses(block: Block): Boolean = {
-    val b = block.clearEndorsements.toByteArray
-    val listOfFuture: Seq[Future[Boolean]] = block.endorsements.map(x => {
-      asyncVerifyEndorse(x, b)
+    val b = block.clearEndorsements.clearReplies.toByteArray
+
+    //zhj
+    val ds = scala.collection.mutable.Buffer[DataSig]()
+    block.replies.foreach( r => {
+        ds += DataSig(r.clearSignature.toByteArray, r.signature.get)
+      for (c <- r.commits) {
+          ds += DataSig(c.clearSignature.toByteArray, c.signature.get)
+          c.prepares.foreach(p=>{
+            ds += DataSig(b, p.signature.get)
+          })
+      }
     })
+
+    /*val listOfFuture: Seq[Future[Boolean]] = block.endorsements.map(x => {
+      asyncVerifyEndorse(x, b)
+    }) */
+
+    val listOfFuture: Seq[Future[Boolean]] = ds.map(x => {
+      asyncVerifyEndorse(x.sig, x.data)
+    })
+
     val futureOfList: Future[List[Boolean]] = Future.sequence(listOfFuture.toList).recover({
       case e: Exception =>
         null
@@ -83,7 +93,7 @@ class ConfirmOfBlock(moduleName: String) extends ModuleBase(moduleName) {
 
     var result = true
     if (result1 == null) {
-      false
+      result = false
     } else {
       result1.foreach(f => {
         if (!f) {
@@ -97,28 +107,15 @@ class ConfirmOfBlock(moduleName: String) extends ModuleBase(moduleName) {
   }
 
   private def handler(block: Block, actRefOfBlock: ActorRef) = {
+    //zhj
     RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify endorsement start,height=${block.height}"))
-    if (SystemProfile.getIsVerifyOfEndorsement) {
-      if (asyncVerifyEndorses(block)) {
-        RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify endorsement end,height=${block.height}"))
-        //背书人的签名一致
-        if (BlockVerify.verifySort(block.endorsements.toArray[Signature]) == 1 || (block.height == 1 && pe.getCurrentBlockHash == "" && block.previousBlockHash.isEmpty())) {
-          //背书信息排序正确
-          RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify endorsement sort,height=${block.height}"))
-          pe.getBlockCacheMgr.addToCache(BlockRestore(block, SourceOfBlock.CONFIRMED_BLOCK, actRefOfBlock))
-          pe.getActorRef(ActorType.storager) ! BatchStore
-          sendEvent(EventType.RECEIVE_INFO, mediator, pe.getSysTag, Topic.Block, Event.Action.BLOCK_NEW)
-        } else {
-          ////背书信息排序错误
-        }
-      } else {
-        //背书验证有错误
-      }
-    } else {
-      RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify endorsement sort,height=${block.height}"))
-      pe.getBlockCacheMgr.addToCache(BlockRestore(block, SourceOfBlock.CONFIRMED_BLOCK, actRefOfBlock))
-      pe.getActorRef(ActorType.storager) ! BatchStore
-      sendEvent(EventType.RECEIVE_INFO, mediator, pe.getSysTag, Topic.Block, Event.Action.BLOCK_NEW)
+    var b = true
+    if (SystemProfile.getIsVerifyOfEndorsement)
+        b = asyncVerifyEndorses(block)
+    if (b) {
+        pe.getBlockCacheMgr.addToCache(BlockRestore(block, SourceOfBlock.CONFIRMED_BLOCK, actRefOfBlock))
+        pe.getActorRef(ActorType.storager) ! BatchStore
+        sendEvent(EventType.RECEIVE_INFO, mediator, pe.getSysTag, Topic.Block, Event.Action.BLOCK_NEW)
     }
   }
 
@@ -129,30 +126,28 @@ class ConfirmOfBlock(moduleName: String) extends ModuleBase(moduleName) {
     } else {
       //与上一个块一致
       RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify blockhash,height=${block.height}"))
-      if (SystemProfile.getNumberOfEndorsement == 1) {
-        /*if (block.height > pe.getCurrentHeight + 1) {
+
+      //zhj
+      /* if (SystemProfile.getNumberOfEndorsement == 1) {
+        if (block.height > pe.getCurrentHeight + 1) {
           RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"confirm verify height,height=${block.height}，localheight=${pe.getCurrentHeight }"))
-          //pe.getActorRef(ActorType.synchrequester) ! StartSync(false)
           pe.getActorRef(ActorType.synchrequester) ! SyncRequestOfStorager(sender,block.height)
-        } else {*/
+        } else {
           handler(block, actRefOfBlock)
           pe.setConfirmHeight(block.height)
-        //}
-        //pe.getActorRef(ActorType.voter) ! VoteOfBlocker
-      } else {
-        if (NodeHelp.ConsensusConditionChecked(block.endorsements.size, pe.getNodeMgr.getStableNodes.size)) {
-          //符合大多数人背书要求
-          handler(block, actRefOfBlock)
-        } else {
-          //错误，没有符合大多人背书要求。
         }
-      }
+      } else { */
+        //zhj
+        if ( block.replies.size >= (SystemProfile.getPbftF + 1))
+            handler(block, actRefOfBlock)
+      //}
     }
   }
 
   override def receive = {
     //Endorsement block
     case ConfirmedBlock(block, actRefOfBlock) =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", ConfirmOfBlock recv ConfirmedBlock: " + ", " + block.hashOfBlock)
       RepTimeTracer.setStartTime(pe.getSysTag, "blockconfirm", System.currentTimeMillis(), block.height, block.transactions.size)
       checkedOfConfirmBlock(block, actRefOfBlock)
       RepTimeTracer.setEndTime(pe.getSysTag, "blockconfirm", System.currentTimeMillis(), block.height, block.transactions.size)

@@ -129,6 +129,23 @@ message Transaction {
     Signature signature = 7;
 }
 
+//zhj
+message MPbftPrepare {
+    Signature signature = 1;
+}
+
+//zhj
+message MPbftCommit {
+    repeated MPbftPrepare prepares = 1;
+    Signature signature = 2;
+}
+
+//zhj
+message MPbftReply {
+    repeated MPbftCommit commits = 1;
+    Signature signature = 2;
+}
+
 message Block {
     // version - 区块数据版本,以便数据格式升级
     uint32 version = 1;
@@ -144,7 +161,11 @@ message Block {
     bytes previousBlockHash = 6;
     //背书签名集合,必须包含出块人签名
     repeated Signature endorsements=7;
-    bytes stateHash = 8;
+
+    //zhj
+    repeated MPbftReply replies=8;
+
+    bytes stateHash = 9;
 }
 
 //交易执行增量日志

@@ -33,13 +33,9 @@ class Rollback4Storager(val dbop: ImpDataAccess,val filemgr: BlockFileMgr) {
         while (loop > toHeight) {
           if (rollbackBlock(loop)) {
             loop -= 1
-            RepLogger.trace(
-              RepLogger.Storager_Logger,
-              "system_name=" + dbop.getSystemName + s"\t  rollback block success ,rollback height=${loop}")
+            RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + dbop.getSystemName + s"\t  rollback block success ,rollback height=${loop}")
           } else {
-            RepLogger.trace(
-              RepLogger.Storager_Logger,
-              "system_name=" + dbop.getSystemName + s"\t current rollback block happend error ,happend pos height=${loop},contract administrator!")
+            RepLogger.trace(RepLogger.Storager_Logger,"system_name=" + dbop.getSystemName + s"\t current rollback block happend error ,happend pos height=${loop},contract administrator!")
             bv = false
             break
           }

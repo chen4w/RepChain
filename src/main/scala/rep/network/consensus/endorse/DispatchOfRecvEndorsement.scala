@@ -16,25 +16,12 @@
 
 package rep.network.consensus.endorse
 
-import akka.actor.{ Actor, ActorRef, Props, Address, ActorSelection }
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
-import akka.routing._;
-import rep.app.conf.{ SystemProfile, TimePolicy }
-import rep.network.base.ModuleBase
-import rep.network.tools.PeerExtension
-import rep.network.Topic
-import rep.protos.peer._
-import rep.utils.GlobalUtils.{ EventType }
-import rep.utils._
-import scala.collection.mutable._
-import rep.network.consensus.util.BlockVerify
-import scala.util.control.Breaks
-import rep.network.util.NodeHelp
-import rep.network.consensus.util.BlockHelp
-import rep.network.consensus.util.BlockVerify
+import akka.actor.Props
+import akka.routing._
+import rep.app.conf.SystemProfile
 import rep.log.RepLogger
-import rep.log.RepTimeTracer
-import rep.network.consensus.endorse.EndorseMsg.{ EndorsementInfo}
+import rep.network.base.ModuleBase
+import rep.network.consensus.endorse.EndorseMsg.{MsgPbftCommit, MsgPbftPrePrepare, MsgPbftPrepare}
 
 object DispatchOfRecvEndorsement {
   def props(name: String): Props = Props(classOf[DispatchOfRecvEndorsement], name)
@@ -42,8 +29,6 @@ object DispatchOfRecvEndorsement {
 
 
 class DispatchOfRecvEndorsement(moduleName: String) extends ModuleBase(moduleName) {
-  import context.dispatcher
-  import scala.concurrent.duration._
   import scala.collection.immutable._
 
   private var router: Router = null
@@ -68,9 +53,20 @@ class DispatchOfRecvEndorsement(moduleName: String) extends ModuleBase(moduleNam
   
 
   override def receive = {
-    case EndorsementInfo(block, blocker) =>
+    //zhj
+    //todo  case MsgPbftPrepare =>
+    case MsgPbftPrePrepare(senderPath,block, blocker) =>
       createRouter
-      router.route(EndorsementInfo(block, blocker), sender)  
+      router.route(MsgPbftPrePrepare(senderPath,block, blocker), sender)
+
+    case MsgPbftPrepare(senderPath,result, block, blocker, prepare, chainInfo) =>
+      createRouter
+      router.route(MsgPbftPrepare(senderPath,result, block, blocker, prepare, chainInfo), sender)
+
+    case MsgPbftCommit(senderPath,block,blocker,commit,chainInfo) =>
+      createRouter
+      router.route(MsgPbftCommit(senderPath,block,blocker,commit,chainInfo), sender)
+
     case _ => //ignore
   }
 }

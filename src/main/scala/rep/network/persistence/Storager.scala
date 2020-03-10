@@ -210,7 +210,7 @@ class Storager(moduleName: String) extends ModuleBase(moduleName) {
     case  BatchStore =>
        RepTimeTracer.setStartTime(pe.getSysTag, "storage-handle-noarg", System.currentTimeMillis(),pe.getCurrentHeight,120)
         Handler
-        RepTimeTracer.setEndTime(pe.getSysTag, "storage-handle-noarg", System.currentTimeMillis(),pe.getCurrentHeight,120) 
+        RepTimeTracer.setEndTime(pe.getSysTag, "storage-handle-noarg", System.currentTimeMillis(),pe.getCurrentHeight,120)
     case _             => //ignore
   }
 

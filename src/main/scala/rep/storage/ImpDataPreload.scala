@@ -76,11 +76,11 @@ class ImpDataPreload (SystemName:String,InstanceName:String) extends AbstractLev
   		var rb : Array[Byte] = null
 			try{
   					if(this.update.containsKey(key)){
-  					  //RepLogger.trace(RepLogger.Business_Logger,  
+  					  //RepLogger.trace(RepLogger.Business_Logger,
   			      //s"nodename=${getSystemName},dbname=${getInstanceName},key=${key},in cache=${deserialise(this.update.get(key))}")
   						rb = this.update.get(key)
   					}else{
-  					 // RepLogger.trace(RepLogger.Business_Logger,  
+  					 // RepLogger.trace(RepLogger.Business_Logger,
   			      //s"nodename=${getSystemName},dbname=${getInstanceName},key=${key},in db=${deserialise(this.dbop.Get(key))}")
   						rb = this.dbop.Get(key)
   					}
@@ -108,14 +108,12 @@ class ImpDataPreload (SystemName:String,InstanceName:String) extends AbstractLev
   		var b : Boolean = true
 			try{
 				  if(key == null){
-				    RepLogger.trace(RepLogger.Storager_Logger,  
-  			      "ImpDataPreload_" + SystemName + "_" + "ImpDataPreload Put failed, error info= key is null")
+				    RepLogger.trace(RepLogger.Storager_Logger,"ImpDataPreload_" + SystemName + "_" + "ImpDataPreload Put failed, error info= key is null")
 				  }
 				  var v :Array[Byte] = bb
 				  if(bb == null){
 				    v = None.toArray
-				    RepLogger.trace(RepLogger.Storager_Logger,  
-  			      "ImpDataPreload_" + SystemName + "_" + "ImpDataPreload Put failed, error info= value is null")
+				    RepLogger.trace(RepLogger.Storager_Logger,"ImpDataPreload_" + SystemName + "_" + "ImpDataPreload Put failed, error info= value is null")
 				  }
 				  if(key != null ){
 				    this.update.put(key, v)

@@ -148,6 +148,7 @@ class TransactionPool(moduleName: String) extends ModuleBase(moduleName) {
   override def receive = {
     //处理接收的交易
     case t: Transaction =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", TransactionPool recv Transaction: " + t.id)
       //保存交易到本地
       sendEvent(EventType.RECEIVE_INFO, mediator, pe.getSysTag, Topic.Transaction, Event.Action.TRANSACTION)
       addTransToCache(t) 
@@ -155,6 +156,7 @@ class TransactionPool(moduleName: String) extends ModuleBase(moduleName) {
       //广播交易到其他共识节点
       if (ActorUtils.isHelper(sender().path.toString) ||  ActorUtils.isAPI(sender().path.toString)) {
         //广播交易
+        //println(sender().path.toString)
         publishTrans(t)
         RepLogger.trace(RepLogger.System_Logger,this.getLogMsgPrefix(s"${pe.getSysTag}  recv self created tran,txid=${t.id}"))
         //广播发送交易事件

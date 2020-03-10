@@ -37,23 +37,30 @@ object RepLogger {
    def OutputTime_Logger = LoggerFactory.getLogger("OutputTime_Logger")
    def TransLifeCycle_Logger = LoggerFactory.getLogger("TransLifeCycle_Logger")
    def APIAccess_Logger = LoggerFactory.getLogger("APIAccess_Logger")
-   
+
+   def zLogger = LoggerFactory.getLogger("zLogger")
+
    def trace(logger:Logger,msg:String)={
-     logger.trace(msg)
+     //zhj logger.trace(msg)
    }
    
    def debug(logger:Logger,msg:String)={
-     logger.debug(msg)
+      //zhj logger.debug(msg)
    }
    
    def info(logger:Logger,msg:String)={
-     logger.info(msg)
+      //zhj logger.info(msg)
    }
-   
+
+   //zhj
+   def print(logger:Logger, msg:String)={
+     logger.debug(msg)
+   }
+
    def error(logger:Logger,msg:String)={
-     logger.error(msg)
+      logger.error(msg)
    }
-   
+
    def except(logger:Logger,msg:String,e:Exception)={
      logger.error(msg,e)
    }

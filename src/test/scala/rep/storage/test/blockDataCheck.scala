@@ -175,7 +175,7 @@ object blockDataCheck extends App {
       a(i) = i.toString()
     }
     val astr = a.mkString(",")
-    println(astr)
+    //println(astr)
     writefile(filename, astr.getBytes)
     delTailOfFile(filename, 10)
     delTailOfFile(filename, 10)
@@ -236,7 +236,7 @@ object blockDataCheck extends App {
 				channel.read(buf);
 				buf.flip();
 				val rb = buf.array();
-				println(new String(rb))
+				//println(new String(rb))
 				
       bv = true
     } catch {

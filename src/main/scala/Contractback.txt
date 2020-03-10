@@ -17,11 +17,11 @@ class NewContract extends IContract{
   implicit val formats = DefaultFormats
   
     def init(ctx: ContractContext){      
-      println(s"tid: $ctx.t.txid")
+      //println(s"tid: $ctx.t.txid")
     }
     
     def set(ctx: ContractContext, data:Map[String,Int]):Object={
-      println(s"set data:$data")
+      //println(s"set data:$data")
       for((k,v)<-data){
         ctx.api.setVal(k, v)
       }
@@ -111,22 +111,22 @@ class NewContract extends IContract{
       
       action match {
         case "transfer" => 
-          println(s"transfer oook")
+          //println(s"transfer oook")
           transfer(ctx,json.extract[Transfer])
         case "set" => 
-          println(s"set") 
+          //println(s"set")
           set(ctx, json.extract[Map[String,Int]])
         case "put_proof" => 
-          println(s"put_proof") 
+          //println(s"put_proof")
           put_proof(ctx, json.extract[Proof])
         case "signup" => 
-          println(s"signup") 
+          //println(s"signup")
           null
         case "destroyCert" => 
-          println(s"destroyCert")
+          //println(s"destroyCert")
           null
         case "replaceCert" => 
-          println(s"replaceCert")
+          //println(s"replaceCert")
           null
       }
     }

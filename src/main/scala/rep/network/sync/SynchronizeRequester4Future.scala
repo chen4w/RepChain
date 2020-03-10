@@ -16,29 +16,22 @@
 
 package rep.network.sync
 
+import akka.actor.{ActorRef, ActorSelection, Address, Props}
+import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.pattern.AskTimeoutException
-import scala.concurrent._
-
-import akka.actor.{ ActorRef, Props, Address, ActorSelection }
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
-import rep.network.base.ModuleBase
-import rep.app.conf.TimePolicy
-import rep.network.module.ModuleManager
-import rep.storage.ImpDataAccess
-import rep.protos.peer._
-import rep.network.persistence.Storager.{ BlockRestore, SourceOfBlock }
-import scala.collection._
-import rep.utils.GlobalUtils.{ ActorType, BlockEvent, EventType, NodeStatus }
-import rep.app.conf.SystemProfile
-import rep.network.util.NodeHelp
-import rep.network.sync.SyncMsg.{ ResponseInfo, StartSync, BlockDataOfRequest, BlockDataOfResponse, SyncRequestOfStorager, ChainInfoOfRequest }
-import scala.util.control.Breaks._
+import rep.app.conf.{SystemProfile, TimePolicy}
 import rep.log.RepLogger
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ArrayBuffer
+import rep.network.base.ModuleBase
+import rep.network.module.ModuleManager
+import rep.network.persistence.Storager.{BlockRestore, SourceOfBlock}
+import rep.network.sync.SyncMsg._
+import rep.network.util.NodeHelp
+import rep.protos.peer._
+import rep.storage.ImpDataAccess
+import rep.utils.GlobalUtils.{ActorType, BlockEvent, EventType}
+
+import scala.collection._
+import scala.concurrent._
 
 object SynchronizeRequester4Future {
   def props(name: String): Props = Props(classOf[SynchronizeRequester4Future], name)
@@ -47,6 +40,7 @@ object SynchronizeRequester4Future {
 
 class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleName) {
   import context.dispatcher
+
   import scala.concurrent.duration._
 
   implicit val timeout = Timeout(TimePolicy.getTimeoutSync.seconds)
@@ -88,7 +82,7 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
     val listOfFuture: Seq[Future[ResponseInfo]] = stablenodes.toSeq.map(addr => {
       AsyncGetNodeOfChainInfo(addr, lh)
     })
-
+Future{5}.map(x=>x+6)
     val futureOfList: Future[List[ResponseInfo]] = Future.sequence(listOfFuture.toList).recover({
       case e: Exception =>
         null
@@ -171,19 +165,22 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
     val res = AsyncGetNodeOfChainInfos(nodes, lh)
 
     val parser = new SynchResponseInfoAnalyzer(pe.getSysTag, pe.getSystemCurrentChainStatus, pe.getNodeMgr)
-    if (SystemProfile.getNumberOfEndorsement == 1) {
+
+    //zhj
+    /*if (SystemProfile.getNumberOfEndorsement == 1) {
       parser.Parser4One(res)
-    } else {
+    } else {*/
       parser.Parser(res, isStartupSynch)
-    }
+    //}
     val result = parser.getResult
     val rresult = parser.getRollbackAction
     val sresult = parser.getSynchActiob
 
     if (result.ar == 1) {
-      if (SystemProfile.getNumberOfEndorsement == 1) {
+      //zhj
+      /*if (SystemProfile.getNumberOfEndorsement == 1) {
         pe.setStartVoteInfo(parser.getMaxBlockInfo)
-      }
+      }*/
       if (rresult != null) {
         val da = ImpDataAccess.GetDataAccess(pe.getSysTag)
         if (da.rollbackToheight(rresult.destHeight)) {
@@ -226,14 +223,16 @@ class SynchronizeRequester4Future(moduleName: String) extends ModuleBase(moduleN
       if (pe.getNodeMgr.getStableNodes.size >= SystemProfile.getVoteNoteMin && !pe.isSynching) {
         pe.setSynching(true)
         try {
-          if(SystemProfile.getNumberOfEndorsement == 1){
+
+          //zhj
+          /*if(SystemProfile.getNumberOfEndorsement == 1){
             val ssize = pe.getNodeMgr.getStableNodes.size
             if(SystemProfile.getVoteNodeList.size() == ssize){
               rb = Handler(isNoticeModuleMgr)
             }
-          }else{
+          }else{ */
             rb = Handler(isNoticeModuleMgr)
-          }
+          //}
         } catch {
           case e: Exception =>
             rb = false

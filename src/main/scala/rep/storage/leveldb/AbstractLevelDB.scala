@@ -128,8 +128,7 @@ abstract class AbstractLevelDB(SystemName:String) extends ILevelDB  {
 	def printlnHashMap(map : mutable.HashMap[String,Array[Byte]])={
 	  if(map != null){
 	    map.foreach(f=>{
-	      RepLogger.trace(RepLogger.Storager_Logger,  
-  			      "\tkey="+f._1 + "\tvalue=" +toString(f._2))
+	      RepLogger.trace(RepLogger.Storager_Logger,"\tkey="+f._1 + "\tvalue=" +toString(f._2))
 	    })
 	  }
 	}

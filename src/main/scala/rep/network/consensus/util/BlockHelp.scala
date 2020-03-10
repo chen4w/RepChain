@@ -18,21 +18,11 @@ package rep.network.consensus.util
 
 import com.google.protobuf.ByteString
 import com.google.protobuf.timestamp.Timestamp
-import scalapb.json4s.JsonFormat
-import rep.app.conf.SystemProfile
-import rep.crypto.{ Sha256 }
-import rep.protos.peer.{ Block, Signature, Transaction, ChaincodeId, CertId }
-import rep.utils.TimeUtils
-import rep.storage.IdxPrefix
-import rep.sc.Shim._
-import rep.storage._
-import java.security.cert.{ Certificate }
-import rep.network.PeerHelper
-import rep.utils.SerializeUtils
-import scala.util.control.Breaks
-import org.slf4j.LoggerFactory
+import rep.crypto.Sha256
 import rep.crypto.cert.SignTool
-import rep.utils.IdTool
+import rep.protos.peer.{Block, Signature, Transaction}
+import rep.utils.{IdTool, TimeUtils}
+import scalapb.json4s.JsonFormat
 
 object BlockHelp {
 /****************************背书相关的操作开始**********************************************************/
@@ -51,7 +41,7 @@ object BlockHelp {
 
   def SignBlock(block: Block, alise: String): Signature = {
     try {
-      val tmpblock = block.clearEndorsements
+      val tmpblock = block.clearEndorsements.clearReplies
       SignDataOfBlock(tmpblock.toByteArray, alise)
     } catch {
       case e: RuntimeException => throw e
@@ -93,7 +83,7 @@ object BlockHelp {
 
   def GetBlockHash(block: Block): String = {
     try {
-      val blkOutEndorse = block.clearEndorsements
+      val blkOutEndorse = block.clearEndorsements.clearReplies
       val blkOutBlockHash = blkOutEndorse.withHashOfBlock(ByteString.EMPTY)
       Sha256.hashstr(blkOutBlockHash.toByteArray)
     } catch {
@@ -113,6 +103,7 @@ object BlockHelp {
         _root_.com.google.protobuf.ByteString.EMPTY,
         ByteString.copyFromUtf8(preBlockHash),
         Seq(),
+        Seq(),//zhj
         _root_.com.google.protobuf.ByteString.EMPTY)
     } catch {
       case e: RuntimeException => throw e

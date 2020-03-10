@@ -16,9 +16,8 @@
 
 package rep.network.consensus.endorse
 
-import akka.actor.{ Address}
-import rep.protos.peer.{Signature,Block,BlockchainInfo}
-import rep.utils.GlobalUtils.{BlockerInfo}
+import akka.actor.Address
+import rep.protos.peer._
 
 object EndorseMsg {
   
@@ -35,19 +34,22 @@ object EndorseMsg {
   case class RequesterOfEndorsement(blc: Block, blocker: String, endorer: Address)
   
   case class ResendEndorseInfo(endorer: Address)
-  
+
+  //zhj EndorsementInfo => MsgPbftPrePrepare
   //给背书人的背书消息
-  case class EndorsementInfo(blc: Block, blocker: String)
+  case class MsgPbftPrePrepare(senderPath:String,block: Block, blocker: String)
 
   //背书收集者消息
   case class CollectEndorsement(blc: Block, blocker: String)
 
-  //背书人返回的背书结果
-  case class ResultOfEndorsed(result: Int, endor: Signature, BlockHash: String,endorserOfChainInfo:BlockchainInfo,endorserOfVote:BlockerInfo)
+  //zhj
+  case class MsgPbftPrepare(senderPath:String,result: Int, block:Block, blocker: String, prepare: MPbftPrepare, chainInfo : BlockchainInfo)
+  case class MsgPbftCommit(senderPath:String,block: Block, blocker: String, commit: MPbftCommit, chainInfo : BlockchainInfo)
+  case class MsgPbftReply(block: Block, reply: MPbftReply, chainInfo : BlockchainInfo)
+  case class MsgPbftReplyOk(block: Block)
+
 
   //背书请求者返回的结果
-  case class ResultOfEndorseRequester(result: Boolean, endor: Signature, BlockHash: String, endorser: Address)
-  
-  
- 
+  //case class ResultOfEndorseRequester(result: Boolean, endor: Signature, BlockHash: String, endorser: Address)
+
 }

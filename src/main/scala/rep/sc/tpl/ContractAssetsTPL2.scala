@@ -42,11 +42,11 @@ case class Transfer(from:String, to:String, amount:Int)
   implicit val formats = DefaultFormats
   
     def init(ctx: ContractContext){      
-      println(s"tid: $ctx.t.id")
+      //println(s"tid: $ctx.t.id")
     }
     
     def set(ctx: ContractContext, data:Map[String,Int]) :ActionResult={
-      println(s"set data:$data")
+      //println(s"set data:$data")
       for((k,v)<-data){
         ctx.api.setVal(k, v)
       }

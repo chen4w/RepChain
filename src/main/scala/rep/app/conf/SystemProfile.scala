@@ -59,7 +59,10 @@ object SystemProfile {
   private[this] var _HAS_PRELOAD_TRANS_OF_API = true
   private[this] var _IS_VERIFY_OF_ENDORSEMENT = true//is_verify_of_endorsement
   private[this] var _NUMBER_OF_ENDORSEMENT: Int = 2
-  
+
+  //zhj
+  private[this] var _PBFT_F: Int = 1
+
   private[this] var _BLOCKNUMBER_OF_RAFT: Int = 100
   
   private[this] var _DBPATH:String = "" //leveldb数据库文件路径
@@ -91,6 +94,10 @@ object SystemProfile {
   private def IS_VERIFY_OF_ENDORSEMENT = _IS_VERIFY_OF_ENDORSEMENT
   
   private def NUMBER_OF_ENDORSEMENT = _NUMBER_OF_ENDORSEMENT
+
+  //zhj
+  private def PBFT_F = _PBFT_F
+
   private def BLOCKNUMBER_OF_RAFT = _BLOCKNUMBER_OF_RAFT
   
   private def REALTIMEGRAPH_ENABLE = _REALTIMEGRAPH_ENABLE
@@ -274,8 +281,11 @@ object SystemProfile {
   
   def getIsVerifyOfEndorsement = IS_VERIFY_OF_ENDORSEMENT
   
-  def getNumberOfEndorsement = NUMBER_OF_ENDORSEMENT
-  
+  //zhj def getNumberOfEndorsement = NUMBER_OF_ENDORSEMENT
+
+  //zhj
+  def getPbftF = PBFT_F
+
   def getBlockLength = BLOCK_LENGTH
 
   def getMinBlockTransNum = MIN_BLOCK_TRANS_NUM

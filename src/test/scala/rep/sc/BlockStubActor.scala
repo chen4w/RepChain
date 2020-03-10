@@ -46,7 +46,7 @@ class BlockStubActor(moduleName: String) extends ModuleBase(moduleName) {
   import rep.network.consensus.util.BlockHelp
   import rep.network.persistence.Storager.{SourceOfBlock, BlockRestore}
 
-  implicit val timeout = Timeout(6.seconds)
+  implicit val timeout = Timeout(60.seconds)
 
   private def ExecuteTransactionOfBlock(block: Block): Block = {
     try {

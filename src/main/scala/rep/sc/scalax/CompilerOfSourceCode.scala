@@ -84,16 +84,16 @@ class CompilerOfSourceCode(targetDir: Option[File], bDebug: Boolean) {
   settings.classpath.append("/Users/jiangbuyun/.ivy2/cache")
   //tb.mirror.classLoader.
   //tb.mirror.universe.runtimeMirror(getClass.getClassLoader).
-  println(s"getSourcePath=${getSourcePath()}")
-  println(s"getclasspath=${this.getClass.getClassLoader.getResource("")}")
+  //println(s"getSourcePath=${getSourcePath()}")
+  //println(s"getclasspath=${this.getClass.getClassLoader.getResource("")}")
   
   var path = System.getProperty("java.class.path");
  val firstIndex = path.lastIndexOf(System.getProperty("path.separator")) + 1;
  val lastIndex = path.lastIndexOf(File.separator) + 1;
  path = path.substring(firstIndex, lastIndex);
-  println(s"systemclasspath=${path}")
+  //println(s"systemclasspath=${path}")
   
-  println(s"userclasspath=${System.getProperty("user.dir")}")
+  //println(s"userclasspath=${System.getProperty("user.dir")}")
   
   settings.classpath.append(path)
   
@@ -191,12 +191,12 @@ class CompilerOfSourceCode(targetDir: Option[File], bDebug: Boolean) {
    val inputFileName = className+".scala"
    val inputFile = new BatchSourceFile(inputFileName, ncode)
 
-   println(s"input file=${inputFile.path}")
-   println(s"setting output dir =${settings.outputDirs.getSingleOutput.get.path}")
+   //println(s"input file=${inputFile.path}")
+   //println(s"setting output dir =${settings.outputDirs.getSingleOutput.get.path}")
    
    val parser = new global.syntaxAnalyzer.SourceFileParser(inputFile)
    val tree = parser.parse
-   println(tree)
+   //println(tree)
 
    run.compileSources(List(inputFile))
 
@@ -204,7 +204,7 @@ class CompilerOfSourceCode(targetDir: Option[File], bDebug: Boolean) {
    val outputFile =outputDir.lookupName(outputFileName, false)
 
    val classBytes = outputFile.toByteArray
-   println("Number of bytes in output file: " + classBytes.length)
+   //println("Number of bytes in output file: " + classBytes.length)
    
    classLoader.LoadClassForByte(className, classBytes)
   }

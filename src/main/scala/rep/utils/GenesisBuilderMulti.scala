@@ -83,11 +83,11 @@ object GenesisBuilderMulti {
     var blk = new Block(1, 1, transList.toArray(new Array[Transaction](transList.size())), Seq(), _root_.com.google.protobuf.ByteString.EMPTY,
       _root_.com.google.protobuf.ByteString.EMPTY)
 
-    blk = blk.clearEndorsements
+    blk = blk.clearEndorsements.clearReplies
     blk = blk.clearTransactionResults
     val r = JsonFormat.toJson(blk)
     val rStr = pretty(render(r))
-    println(rStr)
+    //println(rStr)
 
     val pw = new PrintWriter("json/gensis.json","UTF-8")
     pw.write(rStr)

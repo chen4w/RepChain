@@ -160,7 +160,7 @@ class ContractCert extends IContract {
 
   
   override def init(ctx: ContractContext) {
-    println(s"tid: $ctx.t.id")
+    //println(s"tid: $ctx.t.id")
   }
 
   /**
@@ -171,16 +171,16 @@ class ContractCert extends IContract {
 
     action match {
       case ACTION.SignUpSigner =>
-        println("SignUpSigner")
+        //println("SignUpSigner")
         signUpSigner(ctx, json.extract[Signer])
       case ACTION.SignUpCert =>
-        println("SignUpCert")
+        //println("SignUpCert")
         signUpCert(ctx, json.extract[CertInfo])
       case ACTION.UpdateCertStatus =>
-        println("UpdateCertStatus")
+        //println("UpdateCertStatus")
         updateCertStatus(ctx, json.extract[CertStatus])
       case ACTION.UpdateSigner =>
-        println("UpdateSigner")
+        //println("UpdateSigner")
         updateSigner(ctx, json.extract[Signer])
     }
   }

@@ -35,7 +35,7 @@ object TimeUtils {
     RepLogger.trace(RepLogger.System_Logger,"Time is : " + targetTime)
     val time = getCurrentTime()
     val result = targetTime - time%targetTime
-    println("Time is : " + result)
+    //println("Time is : " + result)
     result
   }
 

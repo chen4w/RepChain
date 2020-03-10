@@ -33,7 +33,7 @@ class TransactionPoolMgr {
   
   private implicit var transactions = new ConcurrentSkipListMap[Long,Transaction]() asScala
   private implicit var transKeys = new ConcurrentHashMap[String,Long]() asScala
-  private implicit var transNumber = new AtomicInteger(0) 
+  private implicit var transNumber = new AtomicInteger(0)
   
   def getTransListClone(start:Int,num: Int,sysName:String): Seq[Transaction] = {
     var translist = scala.collection.mutable.ArrayBuffer[Transaction]()

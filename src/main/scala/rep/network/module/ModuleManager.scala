@@ -16,30 +16,28 @@
 
 package rep.network.module
 
-import akka.actor.{ ActorRef, Props }
-import com.typesafe.config.{ Config }
+import akka.actor.Props
+import com.typesafe.config.Config
 import rep.app.conf.SystemProfile.Trans_Create_Type_Enum
-import rep.app.conf.{ SystemProfile, TimePolicy }
+import rep.app.conf.{SystemProfile, TimePolicy}
+import rep.crypto.cert.SignTool
+import rep.log.{RepLogger, RepTimeTracer}
 import rep.network.PeerHelper
 import rep.network.base.ModuleBase
 import rep.network.cache.TransactionPool
-import rep.network.persistence.Storager
-import rep.ui.web.EventServer
 import rep.network.cluster.MemberListener
-import rep.network.sync.{ SynchronizeResponser, SynchronizeRequester4Future }
-import rep.sc.TransactionDispatcher
-import rep.network.consensus.block.{ GenesisBlocker, ConfirmOfBlock, EndorseCollector, Blocker }
-import rep.network.consensus.endorse.{ Endorser4Future, DispatchOfRecvEndorsement }
-import rep.network.consensus.transaction.{ DispatchOfPreload, PreloaderForTransaction }
+import rep.network.consensus.block.{Blocker, ConfirmOfBlock, EndorseCollector, GenesisBlocker}
+import rep.network.consensus.endorse.{DispatchOfRecvEndorsement, PbftCommit, PbftPrePrepare, PbftPrepare}
+import rep.network.consensus.transaction.DispatchOfPreload
 import rep.network.consensus.vote.Voter
-
+import rep.network.persistence.Storager
+import rep.network.sync.{SynchronizeRequester4Future, SynchronizeResponser}
+import rep.sc.TransactionDispatcher
 import rep.storage.ImpDataAccess
+import rep.storage.verify.verify4Storage
+import rep.ui.web.EventServer
 import rep.utils.ActorUtils
 import rep.utils.GlobalUtils.ActorType
-import rep.crypto.cert.SignTool
-import rep.log.RepLogger
-import rep.storage.verify.verify4Storage
-import rep.log.RepTimeTracer
 
 /**
  * Created by shidianyue on 2017/9/22.
@@ -103,6 +101,11 @@ class ModuleManager(moduleName: String, sysTag: String, enableStatistic: Boolean
 
         context.actorOf(EndorseCollector.props("endorsementcollectioner"), "endorsementcollectioner")
         context.actorOf(DispatchOfRecvEndorsement.props("dispatchofRecvendorsement"), "dispatchofRecvendorsement")
+
+      //zhj
+      context.actorOf(PbftPrePrepare.props("pbftpreprepare"), "pbftpreprepare")
+      context.actorOf(PbftPrepare.props("pbftprepare"), "pbftprepare")
+      context.actorOf(PbftCommit.props("pbftcommit"), "pbftcommit")
 
       if (this.isStartup) {
         context.actorOf(TransactionDispatcher.props("transactiondispatcher"), "transactiondispatcher")

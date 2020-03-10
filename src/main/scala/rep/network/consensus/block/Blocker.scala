@@ -16,34 +16,24 @@
 
 package rep.network.consensus.block
 
+import akka.actor.{ActorRef, Props}
+import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.pattern.AskTimeoutException
-import scala.concurrent._
-
-import akka.actor.{ ActorRef, Address, Props }
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
-import com.google.protobuf.ByteString
-import rep.app.conf.{ SystemProfile, TimePolicy }
-import rep.crypto.Sha256
-import rep.network.consensus.vote.Voter.VoteOfBlocker
+import rep.app.conf.{SystemProfile, TimePolicy}
+import rep.log.{RepLogger, RepTimeTracer}
+import rep.network.Topic
 import rep.network.base.ModuleBase
-import rep.network.consensus.block.Blocker.{ ConfirmedBlock, PreTransBlock, PreTransBlockResult }
+import rep.network.consensus.block.Blocker.PreTransBlockResult
+import rep.network.consensus.endorse.EndorseMsg
+import rep.network.consensus.util.BlockHelp
+import rep.network.consensus.vote.Voter.VoteOfBlocker
+import rep.network.util.NodeHelp
 import rep.protos.peer._
 import rep.storage.ImpDataAccess
-import rep.utils.GlobalUtils.{ ActorType, BlockEvent, EventType, NodeStatus }
-import scala.collection.mutable
-import com.sun.beans.decoder.FalseElementHandler
-import scala.util.control.Breaks
-import rep.utils.IdTool
+import rep.utils.GlobalUtils.{ActorType, EventType}
+
+import scala.concurrent._
 import scala.util.control.Breaks._
-import rep.network.consensus.util.{ BlockHelp, BlockVerify }
-import rep.network.util.NodeHelp
-import rep.network.Topic
-import rep.network.consensus.endorse.EndorseMsg
-import rep.log.RepLogger
-import rep.log.RepTimeTracer
 
 object Blocker {
   def props(name: String): Props = Props(classOf[Blocker], name)
@@ -71,11 +61,10 @@ object Blocker {
  */
 class Blocker(moduleName: String) extends ModuleBase(moduleName) {
 
-  import context.dispatcher
-  import scala.concurrent.duration._
-  import akka.actor.ActorSelection
+  import rep.protos.peer.Transaction
+
   import scala.collection.mutable.ArrayBuffer
-  import rep.protos.peer.{ Transaction }
+  import scala.concurrent.duration._
 
   val dataaccess: ImpDataAccess = ImpDataAccess.GetDataAccess(pe.getSysTag)
   implicit val timeout = Timeout(TimePolicy.getTimeoutPreload.seconds)
@@ -193,25 +182,25 @@ class Blocker(moduleName: String) extends ModuleBase(moduleName) {
   private def CreateBlockHandler = {
     //if (preblock == null) {
     var blc : Block = null
-    if(SystemProfile.getNumberOfEndorsement == 1){
-      blc = CreateBlock4One(0)
-    }else{
+    //zhjif(SystemProfile.getNumberOfEndorsement == 1){
+    //  blc = CreateBlock4One(0)
+    //}else{
       blc = CreateBlock(0)
-    }
+    //}
      
     if (blc != null) {
       RepTimeTracer.setEndTime(pe.getSysTag, "createBlock", System.currentTimeMillis(), blc.height, blc.transactions.size)
       this.preblock = blc
       schedulerLink = clearSched()
 
-      if (SystemProfile.getNumberOfEndorsement == 1) {
-        pe.setCreateHeight(preblock.height)
-        mediator ! Publish(Topic.Block, ConfirmedBlock(preblock, self))
-      }else{
+      //zhj if (SystemProfile.getNumberOfEndorsement == 1) {
+      //  pe.setCreateHeight(preblock.height)
+      //  mediator ! Publish(Topic.Block, ConfirmedBlock(preblock, self))
+      //}else{
         //在发出背书时，告诉对方我是当前出块人，取出系统的名称
         RepTimeTracer.setStartTime(pe.getSysTag, "Endorsement", System.currentTimeMillis(), blc.height, blc.transactions.size)
         pe.getActorRef(ActorType.endorsementcollectioner) ! EndorseMsg.CollectEndorsement(this.preblock, pe.getSysTag)
-      }
+      //}
     } else {
       RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix("create new block error,CreateBlock is null" + "~" + selfAddr))
       pe.getActorRef(ActorType.voter) ! VoteOfBlocker
@@ -222,12 +211,15 @@ class Blocker(moduleName: String) extends ModuleBase(moduleName) {
   override def receive = {
     //创建块请求（给出块人）
     case Blocker.CreateBlock =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", Blocker recv CreateBlock: " + "Now blocker=" + pe.getBlocker.blocker)
       /*if(pe.getSysTag == "121000005l35120456.node1" &&  pe.count <= 10){
         pe.count = pe.count + 1
         throw new Exception("^^^^^^^^^^^^^^^^exception^^^^^^^^^^")
       }*/
       if (!pe.isSynching) {
-        if(SystemProfile.getNumberOfEndorsement == 1){
+
+        //zhj
+        /*if(SystemProfile.getNumberOfEndorsement == 1){
           if (NodeHelp.isBlocker(pe.getBlocker.blocker, pe.getSysTag)){
             sendEvent(EventType.PUBLISH_INFO, mediator, pe.getSysTag, Topic.Block, Event.Action.CANDIDATOR)
              if (preblock == null || (preblock.previousBlockHash.toStringUtf8() != pe.getCurrentBlockHash)) {
@@ -236,19 +228,24 @@ class Blocker(moduleName: String) extends ModuleBase(moduleName) {
              }
           }
           
-        }else{
-          if (NodeHelp.isBlocker(pe.getBlocker.blocker, pe.getSysTag) && pe.getBlocker.voteBlockHash == pe.getCurrentBlockHash) {
+        }else{ */
+        RepLogger.print(RepLogger.zLogger, pe.getBlocker.voteBlockHash)
+        RepLogger.print(RepLogger.zLogger, pe.getCurrentBlockHash)
+        RepLogger.print(RepLogger.zLogger, if (preblock == null) null else preblock.previousBlockHash.toStringUtf8)
+          if (NodeHelp.isBlocker(pe.getBlocker.blocker, pe.getSysTag)
+            && pe.getBlocker.voteBlockHash == pe.getCurrentBlockHash) {
             sendEvent(EventType.PUBLISH_INFO, mediator, pe.getSysTag, Topic.Block, Event.Action.CANDIDATOR)
-  
+
             //是出块节点
             if (preblock == null || (preblock.previousBlockHash.toStringUtf8() != pe.getBlocker.voteBlockHash)) {
+              RepLogger.print(RepLogger.zLogger, "CreateBlockHandler, " + "Me: "+pe.getSysTag)
               CreateBlockHandler
             }
           } else {
             //出块标识错误,暂时不用做任何处理
             RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"create new block,do not blocker or blocker hash not equal current hash,height=${pe.getCurrentHeight}" + "~" + selfAddr))
           }
-        }
+        //}
       } else {
         //节点状态不对
         RepLogger.trace(RepLogger.Consensus_Logger, this.getLogMsgPrefix(s"create new block,node status error,status is synching,height=${pe.getCurrentHeight}" + "~" + selfAddr))

@@ -38,7 +38,7 @@ object Voter {
 
 }
 
-class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
+class Voter(moduleName: String) extends ModuleBase(moduleName) with PbftVoter {//zhj
 
   import context.dispatcher
   import scala.concurrent.duration._
@@ -47,7 +47,7 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
     RepLogger.info(RepLogger.Vote_Logger, this.getLogMsgPrefix("Vote module start"))
   }
 
-  val dataaccess: ImpDataAccess = ImpDataAccess.GetDataAccess(pe.getSysTag)
+  private val dataaccess: ImpDataAccess = ImpDataAccess.GetDataAccess(pe.getSysTag)
 
   //private var BlockHashOfVote: String = null
   private var candidator: Array[String] = Array.empty[String]
@@ -55,7 +55,7 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
   private var voteCount = 0
   private var HeightOfBlocked : String = ""
 
-  def checkTranNum: Boolean = {
+  private def checkTranNum: Boolean = {
     pe.getTransPoolMgr.getTransLength() >= SystemProfile.getMinBlockTransNum
   }
 
@@ -81,10 +81,11 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
   }
 
   private def resetBlocker(idx: Int, currentblockhash: String, currentheight: Long) = {
-    if(SystemProfile.getNumberOfEndorsement == 1){
+    //zhj
+    /*if(SystemProfile.getNumberOfEndorsement == 1){
       pe.setConfirmHeight(0)
       pe.setCreateHeight(0)
-    }
+    }*/
     
     RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},votelist=${candidator.toArray[String].mkString("|")},idx=${idx}"))
     this.Blocker = BlockerInfo(blocker(candidator.toArray[String], idx), idx, System.currentTimeMillis(), currentblockhash, currentheight)
@@ -106,48 +107,11 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
     schedulerLink = scheduler.scheduleOnce(TimePolicy.getVoteRetryDelay.millis, self, Voter.VoteOfBlocker)
   }
 
-  private def vote4One = {
-    
-    if(this.Blocker.blocker == ""){
-      val maxinfo = pe.getStartVoteInfo
-      var currentblockhash:String = ""
-      var currentheight : Long = 0
-      if(maxinfo.height > 0){
-        currentblockhash = maxinfo.hash
-        currentheight = maxinfo.height
-      }else{
-        currentblockhash = pe.getCurrentBlockHash
-        currentheight = pe.getCurrentHeight
-      }
-      if(currentheight > 0){
-        this.cleanVoteInfo
-        this.resetCandidator(currentblockhash)
-        this.resetBlocker(0, currentblockhash, currentheight)
-      }
-      RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},first voter,currentHeight=${currentheight},currentHash=${currentblockhash}" + "~" + selfAddr))
-    }else if((this.Blocker.VoteHeight +SystemProfile.getBlockNumberOfRaft) <= pe.getMaxHeight4SimpleRaft){
-      RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},second voter,currentHeight=${pe.getMaxHeight4SimpleRaft}" + "~" + selfAddr))
-      val block = dataaccess.getBlock4ObjectByHeight(this.Blocker.VoteHeight +SystemProfile.getBlockNumberOfRaft)
-      if(block != null){
-        val currentblockhash = block.hashOfBlock.toStringUtf8()
-        val currentheight = block.height
-        this.cleanVoteInfo
-        this.resetCandidator(currentblockhash)
-        this.resetBlocker(0, currentblockhash, currentheight)
-        RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},read block voter,currentHeight=${this.Blocker.VoteHeight +SystemProfile.getBlockNumberOfRaft},currentHash=${currentblockhash}" + "~" + selfAddr))
-      }else{
-        RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},second voter in synch,currentHeight=${this.Blocker.VoteHeight +SystemProfile.getBlockNumberOfRaft}" + "~" + selfAddr))
-        pe.getActorRef(ActorType.synchrequester) ! StartSync(false)
-      }
-    }else{
-      NoticeBlockerMsg
-    }
-  }
-  
   private def vote = {
     if (checkTranNum) {
       val currentblockhash = pe.getCurrentBlockHash
       val currentheight = pe.getCurrentHeight
+
       if (this.Blocker.voteBlockHash == "") {
         this.cleanVoteInfo
         this.resetCandidator(currentblockhash)
@@ -167,7 +131,10 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
             this.resetBlocker(0, currentblockhash, currentheight)
             RepLogger.trace(RepLogger.Vote_Logger, this.getLogMsgPrefix(s"sysname=${pe.getSysTag},blocker=null,reset voter,height=${currentheight},blocker=${this.Blocker.blocker},voteidx=${this.Blocker.VoteIndex}" + "~" + selfAddr))
           } else {
-            if ((System.currentTimeMillis() - this.Blocker.voteTime) / 1000 > TimePolicy.getTimeOutBlock) {
+            if (((System.currentTimeMillis() - this.Blocker.voteTime) / 1000 > TimePolicy.getTimeOutBlock)
+              //zhj
+              ||(!pe.getNodeMgr.getStableNodeNames.contains(this.Blocker.blocker)))
+            {
               //说明出块超时
               this.voteCount = 0
               this.resetBlocker(this.Blocker.VoteIndex + 1, currentblockhash, currentheight)
@@ -191,18 +158,10 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
         if (NodeHelp.isSeedNode(pe.getSysTag)) {
           // 建立创世块消息
           pe.getActorRef(ActorType.gensisblock) ! GenesisBlock
-        } else {
-          // 发出同步消息
-          //pe.setSystemStatus(NodeStatus.Synching)
-          //pe.getActorRef(ActorType.synchrequester) ! StartSync
         }
       } else {
         if (!pe.isSynching) {
-          if(SystemProfile.getNumberOfEndorsement == 1){
-            vote4One
-          }else{
             vote
-          }
         }
       }
     }
@@ -211,10 +170,9 @@ class Voter(moduleName: String) extends ModuleBase(moduleName) with CRFDVoter {
 
   override def receive = {
     case Voter.VoteOfBlocker =>
+      RepLogger.print(RepLogger.zLogger,pe.getSysTag + ", Voter recv VoteOfBlocker: ")
       if (NodeHelp.isCandidateNow(pe.getSysTag, SystemCertList.getSystemCertList)) {
         voteMsgHandler
       }
-      
-     
   }
 }

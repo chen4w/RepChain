@@ -110,7 +110,7 @@ object BlockVerify {
   def VerifyAllEndorseOfBlock(block: Block, sysName: String): (Boolean, String) = {
     try {
       val endors = block.endorsements
-      val blkOutEndorse = block.clearEndorsements
+      val blkOutEndorse = block.clearEndorsements.clearReplies
       VerifyMutliEndorseOfBlock(endors, blkOutEndorse.toByteArray, sysName)
     } catch {
       case e: RuntimeException => (false, s"Endorsement's sign Error,info=${e.getMessage}")
@@ -123,7 +123,7 @@ object BlockVerify {
     var result = false
     try {
       val oldhash = block.hashOfBlock.toStringUtf8()
-      val blkOutEndorse = block.clearEndorsements
+      val blkOutEndorse = block.clearEndorsements.clearReplies
       val blkOutBlockHash = blkOutEndorse.withHashOfBlock(ByteString.EMPTY)
       val hash = Sha256.hashstr(blkOutBlockHash.toByteArray)
       if (oldhash.equals(hash)) {
